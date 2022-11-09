@@ -2,8 +2,11 @@ package ProgrammingProject.src.main.java.loader;
 
 import java.io.*;
 import java.util.Optional;
+import java.util.logging.Logger;
 
 public class GraphReader {
+    private static final Logger logger = Logger.getLogger(GraphReader.class.getName());
+    public static boolean enableLogging;
 
 
     private enum LineType {
@@ -11,14 +14,17 @@ public class GraphReader {
         EDGE
     }
 
-    private record ParsedLine(LineType type, Number[] values) {
-
-    }
+    private record ParsedLine(LineType type, Number[] values) {}
 
     public static void main(String[] args) {
+        //enableLogging = true;
         GraphReader.read(new File("stgtregbz.fmi"));
     }
 
+    /**
+     * Does the reading of the raw graph file contents into a set of arrays
+     * @param file - The file of the raw graph contents
+     */
     public static void read(final File file) {
 
 
@@ -28,17 +34,16 @@ public class GraphReader {
             while (( line = bufferedReader.readLine() ) != null) {
 
                 Optional<ParsedLine> optionalParsedLine = GraphReader.prepareBuffer(line);
-                if (optionalParsedLine.isEmpty()) continue;
 
-                if (optionalParsedLine.get().type == LineType.NODE) {
-                    System.out.print("Adding Node to array: ");
-                    for (Number number : optionalParsedLine.get().values) {
-                        System.out.print(number + ", ");
-                    }
-                    System.out.println();
-                    GraphReader.parseNode(optionalParsedLine.get().values);
-                } else if (optionalParsedLine.get().type == LineType.EDGE) {
-                    GraphReader.parseEdge(optionalParsedLine.get().values);
+                ParsedLine parsedLine;
+                if (optionalParsedLine.isEmpty()) continue;
+                else parsedLine = optionalParsedLine.get();
+
+                if (parsedLine.type == LineType.NODE) {
+                    logParsedLine(parsedLine);
+                    GraphReader.parseNode(parsedLine.values);
+                } else if (parsedLine.type == LineType.EDGE) {
+                    GraphReader.parseEdge(parsedLine.values);
                 } else continue;
             }
 
@@ -52,6 +57,12 @@ public class GraphReader {
     }
 
 
+    /**
+     * Extracts the input Strings of the raw graph files and parses them to data types. Also figures somehow out which
+     * kind of line {@code LineType} the corresponding line is and wrapps all information in a {@code ParsedLine} object
+     * @param line - The string to be parsed and typed
+     * @return - The {@code ParsedLine} record object
+     */
     private static Optional<ParsedLine> prepareBuffer(final String line) {
 
             String[] rawValues = line.trim().split(" "); // TODO: Maybe use RegEx here?
@@ -72,12 +83,30 @@ public class GraphReader {
                 int distance = Integer.parseInt(rawValues[0]);
 
                 Number[] parsedNumbers = {startNode, targetNode, distance};
-                return Optional.of(new ParsedLine(LineType.NODE, parsedNumbers));
+                return Optional.of(new ParsedLine(LineType.EDGE, parsedNumbers));
             }
 
             return Optional.empty();
     }
 
+    /**
+     * Outputs the formatted contents of the {@code ParsedLine} into the info log, when the {@code enableLogging}
+     * variable is set.
+     * @param parsedLine - The contents to be formatted & logged
+     */
+    private static void logParsedLine(final ParsedLine parsedLine) {
+        if (GraphReader.enableLogging) {
+            StringBuilder logBuffer = new StringBuilder(String.format("Adding %s with following values to array:\t",
+                    parsedLine.type.name()));
+
+            for (int i = 0; i < parsedLine.values.length; i++) {
+                logBuffer.append(parsedLine.values[i]);
+                if (i < parsedLine.values.length - 1) logBuffer.append(",");
+            }
+
+            logger.info(logBuffer.toString());
+        }
+    }
     private static  void parseNode(Number[] buffer) {
 
     }
