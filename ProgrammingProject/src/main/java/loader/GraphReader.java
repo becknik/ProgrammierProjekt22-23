@@ -14,10 +14,28 @@ public class GraphReader {
         EDGE
     }
 
-    private record ParsedLine(LineType type, Number[] values) {}
+    /**
+     * Simple struct for wrapping a {@code LineType} with values of a pgrah node or edge
+     * @param type - (Optional) Used to determine if node or edge
+     * @param values - A array of graph Numbers which follow no specific order...
+     *               TODO due to records no supporting inheritance wrapping might be a bad idea
+     */
+    private record ParsedLine(LineType type, Number[] values) {
+        ParsedLine(Number[] values) {   // Maybe useless
+            this(values.length == 4 ? LineType.NODE : LineType.EDGE, values);
+        }
+        @Override
+        public String toString() {
+            if (type == LineType.NODE) {
+                return String.format("%s:\tnode ID: %d,\tidk %d,\tlongitude: %f,\tlatitude: %f%n", type.toString(), values[0], values[1], values[2], values[3]);
+            } else {
+                return String.format("%s:\tstart node ID: %d,\ttarget node ID: %d,\t idk: %d%n", type.toString(), values[0], values[1], values[2]);
+            }
+        }
+    }
 
     public static void main(String[] args) {
-        //enableLogging = true;
+        enableLogging = true;
         GraphReader.read(new File("stgtregbz.fmi"));
     }
 
@@ -39,8 +57,8 @@ public class GraphReader {
                 if (optionalParsedLine.isEmpty()) continue;
                 else parsedLine = optionalParsedLine.get();
 
+                logParsedLine(parsedLine);
                 if (parsedLine.type == LineType.NODE) {
-                    logParsedLine(parsedLine);
                     GraphReader.parseNode(parsedLine.values);
                 } else if (parsedLine.type == LineType.EDGE) {
                     GraphReader.parseEdge(parsedLine.values);
@@ -67,26 +85,23 @@ public class GraphReader {
 
             String[] rawValues = line.trim().split(" "); // TODO: Maybe use RegEx here?
 
-            if (rawValues.length < 5) return Optional.empty();
-            else if (rawValues[4].equals("0")) {   // TODO this may cause problems
+            if (rawValues.length < 5) {
+                if (enableLogging) logger.info("No valid node or edge detected");
+                return Optional.empty();
+            } else if (rawValues[4].equals("0")) {   // TODO this may cause problems
                 int nodeID = Integer.parseInt(rawValues[0]);    // Maybe chance this to long?
                 long idk = Long.parseLong(rawValues[1]);
                 double  longitude = Double.parseDouble(rawValues[2]);
                 double  latitude = Double.parseDouble(rawValues[3]);
 
-                Number[] parsedNumbers = {nodeID, idk, longitude, latitude};
-                return Optional.of(new ParsedLine(LineType.NODE, parsedNumbers));
-
-            } else if (Integer.parseInt(rawValues[4]) > 0) {
+                return Optional.of(new ParsedLine(LineType.NODE, new Number[]{nodeID, idk, longitude, latitude}));
+            } else {
                 int startNode = Integer.parseInt(rawValues[0]);
                 int targetNode = Integer.parseInt(rawValues[0]);
                 int distance = Integer.parseInt(rawValues[0]);
 
-                Number[] parsedNumbers = {startNode, targetNode, distance};
-                return Optional.of(new ParsedLine(LineType.EDGE, parsedNumbers));
+                return Optional.of(new ParsedLine(LineType.EDGE, new Number[]{startNode, targetNode, distance}));
             }
-
-            return Optional.empty();
     }
 
     /**
@@ -96,15 +111,7 @@ public class GraphReader {
      */
     private static void logParsedLine(final ParsedLine parsedLine) {
         if (GraphReader.enableLogging) {
-            StringBuilder logBuffer = new StringBuilder(String.format("Adding %s with following values to array:\t",
-                    parsedLine.type.name()));
-
-            for (int i = 0; i < parsedLine.values.length; i++) {
-                logBuffer.append(parsedLine.values[i]);
-                if (i < parsedLine.values.length - 1) logBuffer.append(",");
-            }
-
-            logger.info(logBuffer.toString());
+            logger.info("Adding" + parsedLine.toString());
         }
     }
     private static  void parseNode(Number[] buffer) {
