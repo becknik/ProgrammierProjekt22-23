@@ -1,5 +1,7 @@
 package ProgrammingProject.src.main.java.loader;
 
+import ProgrammingProject.src.main.java.struct.AdjacencyGraph;
+
 import java.io.*;
 import java.util.Optional;
 import java.util.logging.Logger;
@@ -43,27 +45,51 @@ public class GraphReader {
      * Does the reading of the raw graph file contents into a set of arrays
      * @param file - The file of the raw graph contents
      */
-    public static void read(final File file) {
+    public static AdjacencyGraph read(final File file) {
 
+        int nodeCount = 0;
+        int edgeCount = 0;
+        AdjacencyGraph adjGraph;
 
         try(BufferedReader bufferedReader = new BufferedReader(new FileReader(file))) {
 
-            String line;
-            while (( line = bufferedReader.readLine() ) != null) {
+            String line = "";
 
-                Optional<ParsedLine> optionalParsedLine = GraphReader.prepareBuffer(line);
-
-                ParsedLine parsedLine;
-                if (optionalParsedLine.isEmpty()) continue;
-                else parsedLine = optionalParsedLine.get();
-
-                logParsedLine(parsedLine);
-                if (parsedLine.type == LineType.NODE) {
-                    GraphReader.parseNode(parsedLine.values);
-                } else if (parsedLine.type == LineType.EDGE) {
-                    GraphReader.parseEdge(parsedLine.values);
-                } else continue;
+            // Skips the first 5 lines
+            for(i=0; i<5; i++){
+                bufferedReader.readLine();
             }
+
+            // Reads the number of nodes and edges
+            nodeCount = Integer.parseInt(bufferedReader.readLine());
+            edgeCount = Integer.parseInt(bufferedReader.readLine());
+
+            adjGraph = new AdjacencyGraph(nodeCount, edgeCount);
+
+            // Loops through every node line and adds node to adjacency graph
+            for(int nodeId = 0; nodeId<nodeCount; nodeId++){
+
+                String[] rawValues = line.trim().split(" ");
+
+                long idk = Long.parseLong(rawValues[1]);
+                double  latitude = Double.parseDouble(rawValues[2]);
+                double  longitude = Double.parseDouble(rawValues[3]);
+
+                adjGraph.addNode(nodeId, longitude, latitude);
+            }
+
+            // Loops through every edge line and adds edge to adjacency graph
+            for (int edgeId = 0; edgeId<edgeCount; edgeId++){
+
+                String[] rawValues = line.trim().split(" ");
+
+                int startNode = Integer.parseInt(rawValues[0]);
+                int targetNode = Integer.parseInt(rawValues[1]);
+                int distance = Integer.parseInt(rawValues[2]);
+
+                adjGraph.addEdge(edgeId, startNode, targetNode);
+            }
+
 
         } catch (FileNotFoundException e) {
             System.err.println("Reader could not find graph file location of " + file);
@@ -73,7 +99,6 @@ public class GraphReader {
             e.printStackTrace();
         }
     }
-
 
     /**
      * Extracts the input Strings of the raw graph files and parses them to data types. Also figures somehow out which
