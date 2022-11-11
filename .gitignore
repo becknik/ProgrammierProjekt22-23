@@ -25,4 +25,8 @@ hs_err_pid*
 .idea
 .settings
 
+# Provided graph files
 stgtregbz.fmi
+stgtregbz.fmi-AdjacencyGraph.txt
+germany.fmi
+germany.fmi-AdjacencyGraph.txt
