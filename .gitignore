@@ -34,3 +34,5 @@ germany.fmi-AdjacencyGraph.txt
 ## Gradle & project
 .gradle
 gradle
+gradlew
+gradlew.bat
