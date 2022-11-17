@@ -1,11 +1,5 @@
-package ProgrammingProject
-
 plugins {
     id 'java'
-    compileJava {
-        sourceCompatibility = '1.17'
-        targetCompatibility = '1.17'
-    }
 }
 
 group 'org.example'

@@ -1,4 +1,4 @@
-package ProgrammingProject.src.main.java.struct;
+package struct;
 
 import java.io.PrintStream;
 import java.util.Arrays;

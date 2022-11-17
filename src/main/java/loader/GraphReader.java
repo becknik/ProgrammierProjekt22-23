@@ -1,6 +1,6 @@
-package ProgrammingProject.src.main.java.loader;
+package loader;
 
-import ProgrammingProject.src.main.java.struct.AdjacencyGraph;
+import struct.AdjacencyGraph;
 
 import java.io.*;
 import java.util.logging.Logger;
