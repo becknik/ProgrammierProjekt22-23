@@ -30,3 +30,7 @@ stgtregbz.fmi
 stgtregbz.fmi-AdjacencyGraph.txt
 germany.fmi
 germany.fmi-AdjacencyGraph.txt
+
+## Gradle & project
+.gradle
+gradle
