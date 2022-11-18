@@ -42,12 +42,14 @@ public class AdjacencyGraph extends Graph{
     }
 
     /**
-     * TODO
-     * @param edgeId
-     * @param source
-     * @param target
+     * Adds an edge to the source & target array and calculates the distance by calling the {@code calculateDistances}
+     * and saving the result to the distances array.
+     *
+     * @param edgeId - The id of the edge (one probably habe more edges)
+     * @param source - The source node the edge is outgoing
+     * @param target - The target node the edge aims to
      */
-    public void addEdge(int edgeId, int source, int target){
+    public void addEdgeAndCalculateDistance(final int edgeId, final int source, final int target){
         sources[edgeId] = source;
         targets[edgeId] = target;
 
@@ -61,6 +63,28 @@ public class AdjacencyGraph extends Graph{
         }
         // Offset value of the next row increases
         offset[source + 1]++;
+        // Adds distance value for this edge
+        distances[edgeId] = this.calculateDistanceOf(source, target);
+    }
+
+    /**
+     * calculates the distance between 2 nodes
+     * @param source
+     * @param target
+     * @return - the distance between source and target as double value
+     */
+    private double calculateDistanceOf(final int source, final int target) {
+        double sourceLon, sourceLat, targetLon, targetLat, distance;
+
+        sourceLon = longitudes[source];
+        sourceLat = latitudes[source];
+        targetLon = longitudes[target];
+        targetLat = latitudes[target];
+        distance = 0;
+
+        distance = Math.sqrt(sourceLon * targetLon + sourceLat * targetLat);
+
+        return distance;
     }
 
     /**
@@ -71,7 +95,7 @@ public class AdjacencyGraph extends Graph{
         out.print(" Node ID/Index:\t| Latitude:\t| Longitude:\t| Offset: \t| Targets: \n");
         for (int i = 0; i < this.longitudes.length; i++) {
             // TODO Add distance value to outgoing nodes
-            out.printf("  %d\t\t|  %f\t|  %f\t| %d\t|  %s%n", i, latitudes[i], longitudes[i], offset[i], Arrays.toString(getOutgoingNodes(i)));
+            out.printf("  %d\t\t|  %f\t|  %f\t| %d\t|  %s%n", i, latitudes[i], longitudes[i], offset[i], Arrays.toString(getOutgoingTargetNodes(i)));
         }
     }
 
@@ -80,15 +104,9 @@ public class AdjacencyGraph extends Graph{
      * @param node - The nodes ID/ index of which the outgoing nodes are requested
      * @return - The outgoing nodes typed as int[]
      */
-    private int[] getOutgoingNodes(final int node) {
+    private int[] getOutgoingTargetNodes(final int node) {
         int startOutgoingNodeID = offset[node];
         int exclusiveOutgoingNodeID = offset[node + 1];
         return Arrays.copyOfRange(targets, startOutgoingNodeID, exclusiveOutgoingNodeID);
-    }
-
-    public void calculateDistances() { //TODO
-        if (distances[(int) (Math.random() * distances.length)] != 0) {
-            throw new RuntimeException("Trying to calculate the distances again? HOW DARE YOU?!");
-        }
     }
 }
