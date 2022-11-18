@@ -11,11 +11,10 @@ public class Main {
         //AdjacencyGraph.enableLogging = true;
 
         long createAdjacencyGraphStart = System.currentTimeMillis();
-        File file = new File("stgtregbz.fmi");
+        File file = new File("stgtregbz.fmi");    // "germany.fmi"
         AdjacencyGraph testAdjacencyGraph = GraphReader.read(file);
         long createAdjacencyGraphEnd = System.currentTimeMillis();
 
-        // Logging adjacency graph to file:
         //Main.writeAdjacencyGraph(testAdjacencyGraph, file);
 
        // Benchmarking:
@@ -24,19 +23,20 @@ public class Main {
     }
 
     private static void writeAdjacencyGraph(AdjacencyGraph adjacencyGraph, File graphFile) {
+
         try {
-            adjacencyGraph.printOutStructs(new PrintStream(new PrintStream(graphFile.getName() + "-adjGraph.txt")));
+            adjacencyGraph.printOutStructs(new PrintStream(new PrintStream(graphFile.getName() + "-adjacency-graph.txt")));
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
     }
     private static void logBenchmark(final long adjacencyGraphCreation, final File graphFile) {
 
-        String formattedOutput = String.format("%s@%s - %tc %n\tCreation of adjArrays: %f secs%n%n", System.getProperty("user.name"),
-                System.getProperty("os.name"), new Date(), adjacencyGraphCreation * 10E-4);
+        String formattedOutput = String.format("%s@%s - %tc%n\tCreation of adjArray:\t%f secs%n%n",
+                System.getProperty("user.name"), System.getProperty("os.name"), new Date(), adjacencyGraphCreation * 10E-4);
 
         try (
-                FileWriter writer = new FileWriter(graphFile.getName() + "-benchmark-log.txt", true)
+                FileWriter writer = new FileWriter(graphFile.getName() + "-benchmark.log", true)
         ) {
             writer.write(formattedOutput);
         } catch (IOException e) {
