@@ -26,10 +26,8 @@ hs_err_pid*
 .settings
 
 # Provided graph files
-stgtregbz.fmi
-stgtregbz.fmi-AdjacencyGraph.txt
-germany.fmi
-germany.fmi-AdjacencyGraph.txt
+stgtregbz.fmi*
+germany.fmi*
 
 ## Gradle & project
 .gradle
