@@ -9,18 +9,6 @@ public class GraphReader {
     private static final Logger logger = Logger.getLogger(GraphReader.class.getName());
     public static boolean enableLogging;
 
-    public static void main(String[] args) throws FileNotFoundException {
-        // Debugging:
-        //GraphReader.enableLogging = true;
-        //AdjacencyGraph.enableLogging = true;
-
-        // Testing:
-        File file = new File("stgtregbz.fmi");
-        AdjacencyGraph testAdjList = GraphReader.read(file);
-        //testAdjList.printOutStructs(System.out);
-        testAdjList.printOutStructs(new PrintStream(new PrintStream(file.getName() + "-AdjacencyGraph.txt")));
-    }
-
     /**
      * Does the reading of the raw graph file contents into a set of arrays
      * @param file - The file of the raw graph contents
