@@ -16,7 +16,7 @@ public class AdjacencyGraph extends Graph{
     private final int[] sources;
     private final int[] targets;
     private final int[] offset;
-    private int cachedSourceNode;
+    private int cachedSourceNodeID;
 
     // Stuff to be calculated:
     private final double[] distances;
@@ -24,7 +24,7 @@ public class AdjacencyGraph extends Graph{
     public AdjacencyGraph(int nodeCount, int edgeCount){
         longitudes = new double[nodeCount];
         latitudes = new double[nodeCount];
-        offset = new int[nodeCount+1];  // Gotcha!
+        offset = new int[nodeCount + 1];  // Gotcha!
         sources = new int[edgeCount];
         targets = new int[edgeCount];
         distances = new double[edgeCount];
@@ -51,18 +51,15 @@ public class AdjacencyGraph extends Graph{
         sources[edgeId] = source;
         targets[edgeId] = target;
 
-        if (cachedSourceNode <= source - 1) {    // Nodes without outgoing nodes, are caught right here
-            // Adding offset value of (last node with outgoing nodes) to the following nodes without outgoing nodes
-            // Due to offset of node v being set on the next nodes (v+1) offset entry
-            // The for loop starts with 2 for the next and following nodes (v+1) offset entry (v+2+k) without outgoing nodes
-            for (int i = 2; i <= source - cachedSourceNode; i++) {
-                offset[cachedSourceNode + i] = offset[cachedSourceNode + 1];
-                // Logging
-                if (AdjacencyGraph.enableLogging) AdjacencyGraph.logger.info(String.format("Setting offset of node %d (=%d) to offset of node %d (%d)",
-                        cachedSourceNode + i, offset[cachedSourceNode + i + 1], cachedSourceNode, offset[cachedSourceNode + 1]));
-            }
-            this.cachedSourceNode = source;
+        /* When there is a sequence of nodes without outgoing edges in between the last observed node and the current,
+         the value of the offset[last observed node+1] is copied inductively into the offset value gap until offset[current node]
+         is set to the calue of the last observed node
+        */
+        while (cachedSourceNodeID < source) {
+            cachedSourceNodeID++;
+            offset[cachedSourceNodeID + 1] = offset[cachedSourceNodeID];
         }
+        // Offset value of the next row increases
         offset[source + 1]++;
     }
 
@@ -71,10 +68,10 @@ public class AdjacencyGraph extends Graph{
      * @param out - PrintStream to be printed to
      */
     public void printOutStructs(final PrintStream out) {
-        out.print(" Node ID/Index:\t| Latitude:\t| Longitude:\t| Targets:\n");
+        out.print(" Node ID/Index:\t| Latitude:\t| Longitude:\t| Offset: \t| Targets: \n");
         for (int i = 0; i < this.longitudes.length; i++) {
             // TODO Add distance value to outgoing nodes
-            out.printf("  %d\t\t|  %f\t|  %f\t|  %s%n", i, latitudes[i], longitudes[i], Arrays.toString(getOutgoingNodes(i)));
+            out.printf("  %d\t\t|  %f\t|  %f\t| %d\t|  %s%n", i, latitudes[i], longitudes[i], offset[i], Arrays.toString(getOutgoingNodes(i)));
         }
     }
 
