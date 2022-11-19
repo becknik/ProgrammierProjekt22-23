@@ -56,7 +56,7 @@ public class AdjacencyGraph implements Graph {
 
         /* When there is a sequence of nodes without outgoing edges in between the last observed node and the current,
          the value of the offset[last observed node+1] is copied inductively into the offset value gap until offset[current node]
-         is set to the calue of the last observed node
+         is set to the value of the last observed node
         */
         while (cachedSourceNodeID < source) {
             cachedSourceNodeID++;
@@ -87,18 +87,22 @@ public class AdjacencyGraph implements Graph {
     }
 
     /**
-     * Painful expensive solution for findig the highest and lowest latitude & longitude, used by the {@code QuadTree} class
-     * @return - The two (upper right longitude,latitude, bottom left longitude, latitude) - sad java does not support tuples :/
+     * Returns the lowest latitude & longitude, used by the {@code QuadTree} class to determine the placement of the greatest "tile"
+     * @return - A quadrupel (latitude highest, lowest, longitude highest, lowest)a
      */
     public double[] getOutestCoordinates() {
-        int amountOfNodes = this.longitudes.length;
+        double highestLatitude = 0d, lowestLatitude = 0d, highestLongitude = 0d, lowestLongitude = 0d;
 
-        double[] sortedLongitudes = Arrays.copyOf(this.longitudes, amountOfNodes);
-        Arrays.sort(sortedLongitudes);
-        double[] sortedLatitudes = Arrays.copyOf(this.latitudes, amountOfNodes);
-        Arrays.sort(sortedLatitudes);
+        for (double latitude : this.latitudes) {
+            if (latitude > highestLatitude) highestLongitude = latitude;
+            else if (latitude < lowestLatitude) lowestLongitude = latitude;
+        }
+        for (double longitude : this.longitudes) {
+            if (longitude > highestLongitude) highestLongitude = longitude;
+            else if (longitude < lowestLongitude) lowestLongitude = longitude;
+        }
 
-        return new double[]{sortedLongitudes[amountOfNodes-1], sortedLatitudes[amountOfNodes-1], sortedLongitudes[0], sortedLatitudes[0]};
+        return new double[]{highestLatitude, lowestLatitude, highestLongitude, lowestLongitude};
     }
 
     /**
