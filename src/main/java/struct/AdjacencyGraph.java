@@ -4,7 +4,7 @@ import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.logging.Logger;
 
-public class AdjacencyGraph extends Graph{
+public class AdjacencyGraph implements Graph {
     private static final Logger logger = Logger.getLogger(AdjacencyGraph.class.getName());
     public static boolean enableLogging;
 
@@ -36,6 +36,7 @@ public class AdjacencyGraph extends Graph{
      * @param longitude
      * @param latitude
      */
+    @Override
     public void addNode(int nodeId, double longitude, double latitude){
         longitudes[nodeId] = longitude;
         latitudes[nodeId] = latitude;
@@ -74,17 +75,30 @@ public class AdjacencyGraph extends Graph{
      * @return - the distance between source and target as double value
      */
     private double calculateDistanceOf(final int source, final int target) {
-        double sourceLon, sourceLat, targetLon, targetLat, distance;
+        double sourceLongitude, sourceLatitude, targetLongitude, targetLatitude;
 
-        sourceLon = longitudes[source];
-        sourceLat = latitudes[source];
-        targetLon = longitudes[target];
-        targetLat = latitudes[target];
-        distance = 0;
+        sourceLongitude = longitudes[source];
+        sourceLatitude = latitudes[source];
+        targetLongitude = longitudes[target];
+        targetLatitude = latitudes[target];
 
-        distance = Math.sqrt(sourceLon * targetLon + sourceLat * targetLat);
-
+        double distance = Math.sqrt(sourceLongitude * targetLongitude + sourceLatitude * targetLatitude);
         return distance;
+    }
+
+    /**
+     * Painful expensive solution for findig the highest and lowest latitude & longitude, used by the {@code QuadTree} class
+     * @return - The two (upper right longitude,latitude, bottom left longitude, latitude) - sad java does not support tuples :/
+     */
+    public double[] getOutestCoordinates() {
+        int amountOfNodes = this.longitudes.length;
+
+        double[] sortedLongitudes = Arrays.copyOf(this.longitudes, amountOfNodes);
+        Arrays.sort(sortedLongitudes);
+        double[] sortedLatitudes = Arrays.copyOf(this.latitudes, amountOfNodes);
+        Arrays.sort(sortedLatitudes);
+
+        return new double[]{sortedLongitudes[amountOfNodes-1], sortedLatitudes[amountOfNodes-1], sortedLongitudes[0], sortedLatitudes[0]};
     }
 
     /**
