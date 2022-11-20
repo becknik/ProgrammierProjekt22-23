@@ -9,8 +9,8 @@ public class AdjacencyGraph implements Graph {
     public static boolean enableLogging;
 
     // Node stuff
-    private final double[] longitudes;
-    private final double[] latitudes;
+    public final double[] longitudes;
+    public final double[] latitudes;
 
     // Edge stuff
     private final int[] sources;
@@ -88,21 +88,22 @@ public class AdjacencyGraph implements Graph {
 
     /**
      * Returns the lowest latitude & longitude, used by the {@code QuadTree} class to determine the placement of the greatest "tile"
-     * @return - A quadrupel (latitude highest, lowest, longitude highest, lowest)a
+     * @return - A quadrupel (longitude highest, latitude, Longitude lowest, latitude)
      */
     public double[] getOutestCoordinates() {
         double highestLatitude = 0d, lowestLatitude = 0d, highestLongitude = 0d, lowestLongitude = 0d;
 
-        for (double latitude : this.latitudes) {
-            if (latitude > highestLatitude) highestLongitude = latitude;
-            else if (latitude < lowestLatitude) lowestLongitude = latitude;
-        }
+        // Saving the highest & lowest longitude & latitude from the arrays into the initialized variables
         for (double longitude : this.longitudes) {
             if (longitude > highestLongitude) highestLongitude = longitude;
             else if (longitude < lowestLongitude) lowestLongitude = longitude;
         }
+        for (double latitude : this.latitudes) {
+            if (latitude > highestLatitude) highestLongitude = latitude;
+            else if (latitude < lowestLatitude) lowestLongitude = latitude;
+        }
 
-        return new double[]{highestLatitude, lowestLatitude, highestLongitude, lowestLongitude};
+        return new double[]{ highestLongitude, highestLatitude, lowestLongitude, lowestLatitude};
     }
 
     /**
