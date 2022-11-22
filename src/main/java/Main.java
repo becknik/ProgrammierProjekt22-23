@@ -14,7 +14,7 @@ public class Main {
         //AdjacencyGraph.enableLogging = true;
 
         long createAdjacencyGraphStart = System.currentTimeMillis();
-        File file = new File("stgtregbz.fmi");    // "germany.fmi"
+        File file = new File("germany.fmi");    // "germany.fmi"
         AdjacencyGraph testAdjacencyGraph = GraphReader.read(file);
         long createAdjacencyGraphEnd = System.currentTimeMillis();
 
@@ -29,7 +29,6 @@ public class Main {
             e.printStackTrace();
         }
         QuadTree testQuadTree = new QuadTree(testAdjacencyGraph);
-
 
 
        // Benchmarking:

@@ -42,6 +42,11 @@ public class AdjacencyGraph implements Graph {
         latitudes[nodeId] = latitude;
     }
 
+    @Override
+    public int getNodeNextTo(int longitude, int latitude) {
+        throw new RuntimeException("Method hast so implementation");    //TODO
+    }
+
     /**
      * Adds an edge to the source & target array and calculates the distance by calling the {@code calculateDistances}
      * and saving the result to the distances array.
