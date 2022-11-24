@@ -1,5 +1,6 @@
 import loader.GraphReader;
 import struct.AdjacencyGraph;
+import struct.ClosestNodeDataStructure;
 
 import java.io.*;
 import java.util.Date;
@@ -20,6 +21,10 @@ public class Main {
        // Benchmarking:
         long adjacencyGraphCreationTime = createAdjacencyGraphEnd - createAdjacencyGraphStart;
         Main.logBenchmark(adjacencyGraphCreationTime, file);
+
+        ClosestNodeDataStructure closestNodeDataStructure = new ClosestNodeDataStructure(testAdjacencyGraph);
+        ClosestNodeDataStructure.Node closestNode = closestNodeDataStructure.getClosestNode(10.4, 49.52);
+        System.out.println("The closest Node is located at:" + closestNode);
     }
 
     private static void writeAdjacencyGraph(AdjacencyGraph adjacencyGraph, File graphFile) {
