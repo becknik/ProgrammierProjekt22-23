@@ -4,7 +4,7 @@ import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.logging.Logger;
 
-public class AdjacencyGraph extends Graph{
+public class AdjacencyGraph {
     private static final Logger logger = Logger.getLogger(AdjacencyGraph.class.getName());
     public static boolean enableLogging;
 
@@ -82,7 +82,7 @@ public class AdjacencyGraph extends Graph{
         targetLat = latitudes[target];
         distance = 0;
 
-        distance = Math.sqrt(sourceLon * targetLon + sourceLat * targetLat);
+        distance = Math.sqrt(Math.pow((sourceLon - targetLon), 2) + Math.pow((sourceLat * targetLat), 2));
 
         return distance;
     }
@@ -109,4 +109,16 @@ public class AdjacencyGraph extends Graph{
         int exclusiveOutgoingNodeID = offset[node + 1];
         return Arrays.copyOfRange(targets, startOutgoingNodeID, exclusiveOutgoingNodeID);
     }
+
+    public int getSize() {
+        return longitudes.length;
+    }
+
+    public double getLongitude(int index) {
+        return longitudes[index];
+    }
+    public double getLatitude(int index) {
+        return latitudes[index];
+    }
+
 }
