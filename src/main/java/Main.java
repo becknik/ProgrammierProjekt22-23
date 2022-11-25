@@ -1,9 +1,12 @@
 import loader.GraphReader;
 import struct.AdjacencyGraph;
 import struct.ClosestNodeDataStructure;
+import struct.QuadTree;
 
 import java.io.*;
 import java.util.Date;
+import java.util.logging.FileHandler;
+import java.util.logging.SimpleFormatter;
 
 public class Main {
     public static void main(String[] args) {
@@ -18,17 +21,7 @@ public class Main {
 
         //Main.writeAdjacencyGraph(testAdjacencyGraph, file);
 
-        /*
-        QuadTree.enableLogging = true;
-        try {
-            FileHandler fileHandler = new FileHandler(file + "-quad-tree-creation.log");
-            fileHandler.setFormatter(new SimpleFormatter());
-            QuadTree.logger.addHandler(fileHandler);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        QuadTree testQuadTree = new QuadTree(testAdjacencyGraph);
-         */
+        Main.quadTreeStuff(file, testAdjacencyGraph);
 
         ClosestNodeDataStructure closestNodeDataStructure = new ClosestNodeDataStructure(testAdjacencyGraph);
         ClosestNodeDataStructure.Node closestNode = closestNodeDataStructure.getClosestNode(10.4, 49.52);
@@ -37,6 +30,25 @@ public class Main {
        // Benchmarking:
         long adjacencyGraphCreationTime = createAdjacencyGraphEnd - createAdjacencyGraphStart;
         Main.logBenchmark(adjacencyGraphCreationTime, file);
+    }
+
+    /**
+     * Everything QuadTree specific including logging, refactored for testing this experimental feature
+     * @param file graph file
+     * @param adjacencyGraph needed by QuadTree
+     */
+    private static void quadTreeStuff(final File file, final AdjacencyGraph adjacencyGraph) {
+        // Logging:
+        QuadTree.enableLogging = true;
+        try {
+            FileHandler fileHandler = new FileHandler(file + "-quad-tree-creation.log");
+            fileHandler.setFormatter(new SimpleFormatter());
+            QuadTree.logger.addHandler(fileHandler);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        QuadTree testQuadTree = new QuadTree(adjacencyGraph);
     }
 
     private static void writeAdjacencyGraph(AdjacencyGraph adjacencyGraph, File graphFile) {
