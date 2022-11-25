@@ -9,8 +9,8 @@ public class AdjacencyGraph implements Graph {
     public static boolean enableLogging;
 
     // Node stuff
-    public final double[] longitudes;
-    public final double[] latitudes;
+    final double[] longitudes;
+    final double[] latitudes;
 
     // Edge stuff
     private final int[] sources;
@@ -36,15 +36,9 @@ public class AdjacencyGraph implements Graph {
      * @param longitude
      * @param latitude
      */
-    @Override
     public void addNode(int nodeId, double longitude, double latitude){
         longitudes[nodeId] = longitude;
         latitudes[nodeId] = latitude;
-    }
-
-    @Override
-    public int getNodeNextTo(int longitude, int latitude) {
-        throw new RuntimeException("Method hast so implementation");    //TODO
     }
 
     /**
@@ -61,7 +55,7 @@ public class AdjacencyGraph implements Graph {
 
         /* When there is a sequence of nodes without outgoing edges in between the last observed node and the current,
          the value of the offset[last observed node+1] is copied inductively into the offset value gap until offset[current node]
-         is set to the value of the last observed node
+         is set to the calue of the last observed node
         */
         while (cachedSourceNodeID < source) {
             cachedSourceNodeID++;
@@ -80,14 +74,16 @@ public class AdjacencyGraph implements Graph {
      * @return - the distance between source and target as double value
      */
     private double calculateDistanceOf(final int source, final int target) {
-        double sourceLongitude, sourceLatitude, targetLongitude, targetLatitude;
+        double sourceLon, sourceLat, targetLon, targetLat, distance;
 
-        sourceLongitude = longitudes[source];
-        sourceLatitude = latitudes[source];
-        targetLongitude = longitudes[target];
-        targetLatitude = latitudes[target];
+        sourceLon = longitudes[source];
+        sourceLat = latitudes[source];
+        targetLon = longitudes[target];
+        targetLat = latitudes[target];
+        distance = 0;
 
-        double distance = Math.sqrt(sourceLongitude * targetLongitude + sourceLatitude * targetLatitude);
+        distance = Math.sqrt(sourceLon * targetLon + sourceLat * targetLat);
+
         return distance;
     }
 
@@ -133,4 +129,16 @@ public class AdjacencyGraph implements Graph {
         int exclusiveOutgoingNodeID = offset[node + 1];
         return Arrays.copyOfRange(targets, startOutgoingNodeID, exclusiveOutgoingNodeID);
     }
+
+    public int getSize() {
+        return longitudes.length;
+    }
+
+    public double getLongitude(int index) {
+        return longitudes[index];
+    }
+    public double getLatitude(int index) {
+        return latitudes[index];
+    }
+
 }

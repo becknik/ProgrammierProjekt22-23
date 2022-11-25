@@ -1,11 +1,9 @@
 import loader.GraphReader;
 import struct.AdjacencyGraph;
-import struct.QuadTree;
+import struct.ClosestNodeDataStructure;
 
 import java.io.*;
 import java.util.Date;
-import java.util.logging.FileHandler;
-import java.util.logging.SimpleFormatter;
 
 public class Main {
     public static void main(String[] args) {
@@ -14,12 +12,13 @@ public class Main {
         //AdjacencyGraph.enableLogging = true;
 
         long createAdjacencyGraphStart = System.currentTimeMillis();
-        File file = new File("germany.fmi");    // "germany.fmi"
+        File file = new File("stgtregbz.fmi");    // "germany.fmi"
         AdjacencyGraph testAdjacencyGraph = GraphReader.createAdjacencyGraphOf(file);
         long createAdjacencyGraphEnd = System.currentTimeMillis();
 
         //Main.writeAdjacencyGraph(testAdjacencyGraph, file);
 
+        /*
         QuadTree.enableLogging = true;
         try {
             FileHandler fileHandler = new FileHandler(file + "-quad-tree-creation.log");
@@ -29,7 +28,11 @@ public class Main {
             e.printStackTrace();
         }
         QuadTree testQuadTree = new QuadTree(testAdjacencyGraph);
+         */
 
+        ClosestNodeDataStructure closestNodeDataStructure = new ClosestNodeDataStructure(testAdjacencyGraph);
+        ClosestNodeDataStructure.Node closestNode = closestNodeDataStructure.getClosestNode(10.4, 49.52);
+        System.out.println("The closest Node is located at:" + closestNode);
 
        // Benchmarking:
         long adjacencyGraphCreationTime = createAdjacencyGraphEnd - createAdjacencyGraphStart;
