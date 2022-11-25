@@ -82,7 +82,7 @@ public class AdjacencyGraph {
         targetLat = latitudes[target];
         distance = 0;
 
-        distance = Math.sqrt(Math.pow((sourceLon - targetLon), 2) + Math.pow((sourceLat * targetLat), 2));
+        distance = Math.sqrt(Math.pow((sourceLon - targetLon), 2) + Math.pow((sourceLat - targetLat), 2));
 
         return distance;
     }
