@@ -14,9 +14,6 @@ public class QuadTree implements Graph {
         private final double rightmostLatitude;    // Y position
         private final double leftmostLongitude;
         private final double leftmostLatitude;
-        // Center coordinates of node, calculated in constructor, used determine child node tile for passed by new node
-        private final double centersLongitude;
-        private final double centersLatitude;
 
         // The fields/ tiles of node
         private Node northeasternNode;  // 0 <- imaginary filed
@@ -40,10 +37,6 @@ public class QuadTree implements Graph {
             this.rightmostLatitude = rightmostLatitude;
             this.leftmostLongitude = leftmostLongitude;
             this.leftmostLatitude = leftmostLatitude;
-
-            // Calculating the center node
-            this.centersLongitude = (leftmostLongitude + rightmostLongitude) / 2;
-            this.centersLatitude = (leftmostLatitude + rightmostLatitude) / 2;
         }
 
         /**
@@ -80,6 +73,22 @@ public class QuadTree implements Graph {
             this.addNode(nodeIds[1], longitudes[1], latitudes[1]);
             this.addNode(nodeIds[2], longitudes[2], latitudes[2]);
             this.addNode(nodeIds[3], longitudes[3], latitudes[3]);
+        }
+
+        /**
+         * Insted of saving the InnerNodes center longitude, this operation calculates & returns it
+         * @return - The centers longitude
+         */
+        private double calculateCentersLongitude () {
+            return (leftmostLongitude + rightmostLongitude) / 2;
+        }
+
+        /**
+         * Returns the centers latitude to avoid some memory space
+         * @return - The centers latitude
+         */
+        private double calculateCentersLatitude () {
+            return  (leftmostLatitude + rightmostLatitude) / 2;
         }
 
         /**
@@ -141,8 +150,8 @@ public class QuadTree implements Graph {
          * @return - The field of the InnerNode the coordinate fits in
          */
         private int getFieldNumberFor(final double longitude, final double latitude) {
-            double differenceLongitude = this.centersLongitude - longitude;
-            double differenceLatitude = this.centersLatitude - latitude;
+            double differenceLongitude = this.calculateCentersLongitude() - longitude;
+            double differenceLatitude = this.calculateCentersLatitude() - latitude;
 
             if (differenceLongitude > 0) {
                 if (differenceLatitude > 0) {    // case: northeastern tile
@@ -183,24 +192,24 @@ public class QuadTree implements Graph {
                 // Creates the new Inner Node by selecting the right values for their coords
                 if (maybeALeafNode == this.northeasternNode) {
                     this.northeasternNode = new InnerNode(this, this.rightmostLongitude, this.rightmostLatitude,
-                            this.centersLongitude, this.centersLatitude, leafNode);
+                            this.calculateCentersLongitude(), this.calculateCentersLatitude(), leafNode);
 
                 } else if (maybeALeafNode == this.southeasternNode) {
                     double rightCornersX = this.rightmostLongitude;
-                    double centersY = this.centersLatitude;
-                    double centersX = this.centersLongitude;
+                    double centersY = this.calculateCentersLatitude();
+                    double centersX = this.calculateCentersLongitude();
                     double leftCornersY = this.leftmostLatitude;
                     northeasternNode = new InnerNode(this, rightCornersX, centersY, centersX, leftCornersY, leafNode);
 
                 } else if (maybeALeafNode == this.southwesternNode) {
-                    this.southwesternNode= new InnerNode(this, this.centersLongitude, this.centersLatitude,
+                    this.southwesternNode= new InnerNode(this, this.calculateCentersLongitude(), this.calculateCentersLatitude(),
                             this.leftmostLongitude, this.leftmostLatitude, leafNode);
 
                 } else {
-                    double centersX = this.centersLongitude;
+                    double centersX = this.calculateCentersLongitude();
                     double rightCornersY = this.rightmostLatitude;
                     double leftCornersX = this.leftmostLongitude;
-                    double centersY = this.centersLongitude;
+                    double centersY = this.calculateCentersLatitude();
                     northeasternNode = new InnerNode(this, centersX, rightCornersY, leftCornersX, centersY, leafNode);
                 }
             }
@@ -271,7 +280,7 @@ public class QuadTree implements Graph {
                     "Parent Node of this InnerNode is set to null and the total number of nodes is > 4"; // For the sake of readability
 
             if (enableLogging && parentNode != null) logger.info(String.format("Adding node\t%d (%f, %f)\tto LeafNode\t%s which parent nodes center is on (%f, %f)",
-                    nodeId, longitude, latitude, this, parentNode.centersLongitude, parentNode.centersLatitude));
+                    nodeId, longitude, latitude, this, parentNode.calculateCentersLongitude(), parentNode.calculateCentersLatitude()));
 
             this.nodeIds[nodeCount] = nodeId;
             this.longitudes[nodeCount] = longitude;
