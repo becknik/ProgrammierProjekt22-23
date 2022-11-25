@@ -15,7 +15,7 @@ public class Main {
 
         long createAdjacencyGraphStart = System.currentTimeMillis();
         File file = new File("germany.fmi");    // "germany.fmi"
-        AdjacencyGraph testAdjacencyGraph = GraphReader.read(file);
+        AdjacencyGraph testAdjacencyGraph = GraphReader.createAdjacencyGraphOf(file);
         long createAdjacencyGraphEnd = System.currentTimeMillis();
 
         //Main.writeAdjacencyGraph(testAdjacencyGraph, file);

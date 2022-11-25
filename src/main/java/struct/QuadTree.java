@@ -215,15 +215,25 @@ public class QuadTree implements Graph {
             }
         }
 
-        @Override
-        public int getNodeNextTo(final int longitude, final int latitude) {
+        /**
+         * Returns the parent node of the imaginary node made up by the coordinate values by traveling through the tree
+         * recursively.
+         * @param longitude - The longitude of the imaginary node
+         * @param latitude - The latitude "
+         * @return The parent node of the InnerNode in which the imaginary node should be pasted
+         */
+        public InnerNode getParentNodeFor (final double longitude, final double latitude) {
+
             int destinationField = this.getFieldNumberFor(longitude, latitude);
             Node destinationNode = this.getFieldNumbersNode(destinationField);
+
             if (destinationNode instanceof LeafNode leafNode) {     // leafNode must not be null
                 double relativeDistanceOfDest = leafNode.getSmallestRelativeDistanceTo(longitude, latitude);
+                bestDistanceToGraphNodeInTree = relativeDistanceOfDest;
+                return leafNode.parentNode;
+            } else {
+                return ((InnerNode) destinationNode).getParentNodeFor(longitude, latitude);
             }
-            // TODO!!!
-            return 0;
         }
     }
 
@@ -309,11 +319,6 @@ public class QuadTree implements Graph {
             return nearestNodesRelativeDistance;
         }
 
-        @Override
-        public int getNodeNextTo(int longitude, int latitude) {
-            return 0;
-        }
-
         public int getNodeCount() {
             return this.nodeCount;
         }
@@ -323,9 +328,10 @@ public class QuadTree implements Graph {
     public static final Logger logger = Logger.getLogger(AdjacencyGraph.class.getName());
     public static boolean enableLogging;
 
+    private final AdjacencyGraph adjacencyGraph;
     private Node root;
     private int totalNodeCount;
-    private final AdjacencyGraph adjacencyGraph;
+    private double bestDistanceToGraphNodeInTree;
 
     /**
      * Initializes the QuadTree graph structure from values of the {@code AdjacencyGraph} object provided.
@@ -351,8 +357,21 @@ public class QuadTree implements Graph {
         totalNodeCount++;
     }
 
-    @Override
-    public int getNodeNextTo(int longitude, int latitude) {
+    public int getNearestNodeTo(final double longitude, final double latitude) {
+        assert this.root.getClass() != LeafNode.class;
+        InnerNode imaginaryNodesParent = ((InnerNode) this.root).getParentNodeFor(longitude, latitude); // :(
+
+        /*
+         TODO:
+          Set bestDistanceToGraphNodeInTree to the best relative distance to all graph nodes inthe imaginary nodes
+          LeafNode
+          Initialize stack with recursive top-down search of imaginaryNodes (which are intersected by the radius of
+          the imaginary nodes with its shortest distance) further
+          child nodes
+          Then pop form stack, and iterate through the further parents childs and setting the best distance, if there
+           is a better one
+          Then do the same thing form the parent node up to the root node
+         */
 
         return 0;
     }

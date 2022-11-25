@@ -13,7 +13,7 @@ public class GraphReader {
      * Does the reading of the raw graph file contents into a set of arrays
      * @param file - The file of the raw graph contents
      */
-    public static AdjacencyGraph read(final File file) {
+    public static AdjacencyGraph createAdjacencyGraphOf (final File file) {
         int nodeCount;
         int edgeCount;
         AdjacencyGraph adjGraph = null;
