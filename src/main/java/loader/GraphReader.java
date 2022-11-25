@@ -35,8 +35,8 @@ public class GraphReader {
                 line = bufferedReader.readLine();
                 String[] rawValues = line.trim().split(" ");
 
-                double  latitude = Double.parseDouble(rawValues[2]);
-                double  longitude = Double.parseDouble(rawValues[3]);
+                double  longitude = Double.parseDouble(rawValues[2]);
+                double  latitude = Double.parseDouble(rawValues[3]);
 
                 // Logging
                 if (AdjacencyGraph.enableLogging) GraphReader.logger.info(String.format("Trying to add node no. %d\t with latitude %f,\t longitude %f\t to adjacency arrays.%n", nodeId, latitude, longitude));
