@@ -21,15 +21,23 @@ public class Main {
 
         //Main.writeAdjacencyGraph(testAdjacencyGraph, file);
 
-        Main.quadTreeStuff(file, testAdjacencyGraph);
+        //Main.quadTreeStuff(file, testAdjacencyGraph);
 
+        long createClosestNodeStart = System.currentTimeMillis();
         ClosestNodeDataStructure closestNodeDataStructure = new ClosestNodeDataStructure(testAdjacencyGraph);
+        long createClosestNodeEnd = System.currentTimeMillis();
+
+
+        long getNearestNodeStart = System.currentTimeMillis();
         ClosestNodeDataStructure.Node closestNode = closestNodeDataStructure.getClosestNode(10.4, 49.52);
+        long getNearestNodeEnd = System.currentTimeMillis();
         System.out.println("The closest Node is located at:" + closestNode);
 
        // Benchmarking:
         long adjacencyGraphCreationTime = createAdjacencyGraphEnd - createAdjacencyGraphStart;
-        Main.logBenchmark(adjacencyGraphCreationTime, file);
+        long creatClosestNodeTime = createClosestNodeEnd - createClosestNodeStart;
+        long getNearestNodeTime = getNearestNodeEnd- getNearestNodeStart;
+        Main.logBenchmark(file, adjacencyGraphCreationTime, creatClosestNodeTime, getNearestNodeTime);
     }
 
     /**
@@ -59,10 +67,13 @@ public class Main {
             e.printStackTrace();
         }
     }
-    private static void logBenchmark(final long adjacencyGraphCreation, final File graphFile) {
+    private static void logBenchmark(final File graphFile, final long adjacencyGraphCreation,
+                                     final long creatGraphDataStructure, final long getNearestNode) {
 
-        String formattedOutput = String.format("%s@%s - %tc%n\tCreation of adjArray:\t%f secs%n%n",
-                System.getProperty("user.name"), System.getProperty("os.name"), new Date(), adjacencyGraphCreation * 10E-4);
+        String formattedOutput = String.format("%s@%s - %tc%n\tCreation of adjArray:\t%f sec%n\tCreation of " +
+                        "graphStruct:\t%f sec%n\tGetting nearest node from coords:\t%f sec%n%n",
+                System.getProperty("user.name"), System.getProperty("os.name"), new Date(),
+                adjacencyGraphCreation * 10E-4, creatGraphDataStructure * 10E-4, getNearestNode * 10E-4);
 
         try (
                 FileWriter writer = new FileWriter(graphFile.getName() + "-benchmark.log", true)
