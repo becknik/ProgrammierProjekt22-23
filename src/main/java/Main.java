@@ -15,7 +15,7 @@ public class Main {
         //AdjacencyGraph.enableLogging = true;
 
         long createAdjacencyGraphStart = System.currentTimeMillis();
-        File file = new File("stgtregbz.fmi");    // "germany.fmi"
+        File file = new File("germany.fmi");    // "germany.fmi"
         AdjacencyGraph testAdjacencyGraph = GraphReader.createAdjacencyGraphOf(file);
         long createAdjacencyGraphEnd = System.currentTimeMillis();
 
@@ -38,6 +38,11 @@ public class Main {
         long creatClosestNodeTime = createClosestNodeEnd - createClosestNodeStart;
         long getNearestNodeTime = getNearestNodeEnd- getNearestNodeStart;
         Main.logBenchmark(file, adjacencyGraphCreationTime, creatClosestNodeTime, getNearestNodeTime);
+
+        long onetoAllDijkstraStart = System.currentTimeMillis();
+        testAdjacencyGraph.oneToAllDijkstra(0);
+        long oneToAllDijkstraEnd = System.currentTimeMillis();
+        System.out.println(oneToAllDijkstraEnd - onetoAllDijkstraStart);
     }
 
     /**

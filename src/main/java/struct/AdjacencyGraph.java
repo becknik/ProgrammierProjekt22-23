@@ -1,7 +1,10 @@
 package struct;
 
+import java.awt.*;
 import java.io.PrintStream;
 import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.PriorityQueue;
 import java.util.logging.Logger;
 
 public class AdjacencyGraph implements Graph {
@@ -20,6 +23,7 @@ public class AdjacencyGraph implements Graph {
 
     // Stuff to be calculated:
     private final double[] distances;
+    private double[] distanceOneToAll;
 
     public AdjacencyGraph(int nodeCount, int edgeCount){
         longitudes = new double[nodeCount];
@@ -28,6 +32,7 @@ public class AdjacencyGraph implements Graph {
         sources = new int[edgeCount];
         targets = new int[edgeCount];
         distances = new double[edgeCount];
+        distanceOneToAll = new double[nodeCount];
     }
 
     /**
@@ -130,6 +135,24 @@ public class AdjacencyGraph implements Graph {
         return Arrays.copyOfRange(targets, startOutgoingNodeID, exclusiveOutgoingNodeID);
     }
 
+    /**
+     * Returns an Array of the indexes for the outgoing edges from sourceNode.
+     * @param sourceNode the given source node
+     * @return array with the indexes of those edges which are outgoing edges from sourceNode
+     */
+    private int[] getIndexOfOutgoingEdges(final int sourceNode) {
+        int startOutgoingNodeID = offset[sourceNode];
+        int exclusiveOutgoingNodeID = offset[sourceNode + 1];
+        int indexRange = exclusiveOutgoingNodeID - startOutgoingNodeID;
+
+        int[] indizes = new int[indexRange];
+
+        for(int i = 0; i < indexRange; i++) {
+            indizes[i] = startOutgoingNodeID + i;
+        }
+        return indizes;
+    }
+
     public int getSize() {
         return longitudes.length;
     }
@@ -139,6 +162,85 @@ public class AdjacencyGraph implements Graph {
     }
     public double getLatitude(int index) {
         return latitudes[index];
+    }
+    public double getDistance(int index) {
+        return distances[index];
+    }
+
+    public record DijkstraNode(int idNode, double distance) implements Comparable{
+
+        @Override
+        public int compareTo(Object o) {
+            if (o.getClass() != DijkstraNode.class){
+                throw new IllegalArgumentException("Compare to only for instances of DijkstraNode!");
+            }
+            AdjacencyGraph.DijkstraNode node = (AdjacencyGraph.DijkstraNode) o;
+
+            if (this.distance - node.distance < 0) {
+                return -1;
+            } else if (this.distance - node.distance > 0) {
+                return 1;
+            }
+            return 0;
+        }
+    }
+
+    /**
+     * calculates the oneToAllDijkstra
+     * @param nodeID the source node for the dijkstra algorithm
+     */
+    public void oneToAllDijkstra(int nodeID) {
+
+        PriorityQueue<DijkstraNode> prioNodes = new PriorityQueue();
+
+        double[] currentDistances = new double[this.getSize()];
+        Arrays.fill(currentDistances, -1);
+        double[] lockedDistances = new double[this.getSize()];
+        Arrays.fill(lockedDistances, -1);
+
+        DijkstraNode currentNode;
+        int currentID = nodeID;
+        double currentDistance = 0;
+
+        int[] connectedNodes = getOutgoingTargetNodes(nodeID);
+        int[] connectedEdges = getIndexOfOutgoingEdges(nodeID);
+
+        // Setup for first loop iteration BANANA
+        DijkstraNode startNode = new DijkstraNode(nodeID, 0);
+        prioNodes.add(startNode);
+
+        currentDistances[nodeID] = 0;
+
+        while(!prioNodes.isEmpty()){
+
+            currentNode = prioNodes.poll();
+            lockedDistances[currentNode.idNode] = currentNode.distance;
+            currentID = currentNode.idNode;
+
+            connectedNodes = getOutgoingTargetNodes(currentID);
+            connectedEdges = getIndexOfOutgoingEdges(currentID);
+
+            // Add neighbournodes to priorityqueue (skips the nodes which are allready included in lockedDistances)
+            for(int i = 0; i < connectedNodes.length; i++){
+                final int deleteID = connectedNodes[i];
+
+                currentDistance = currentNode.distance + distances[connectedEdges[i]];
+
+                if(currentDistances[connectedNodes[i]] < 0.0){
+                    // Generates a dijkstra Object with the distance of source node + edge distance
+                    prioNodes.add(new DijkstraNode(connectedNodes[i], currentDistance));
+                    currentDistances[connectedNodes[i]] = currentDistance;
+                }
+                else if(currentDistances[connectedNodes[i]] > currentDistance){
+                    currentDistances[connectedNodes[i]] = currentDistance;
+                    prioNodes.removeIf(o1 -> o1.idNode == deleteID);
+                    prioNodes.add(new DijkstraNode(connectedNodes[i], currentDistance));
+                }
+            }
+
+            // Sort PrioNodes - check this
+        }
+        currentID = currentID;
     }
 
 }
