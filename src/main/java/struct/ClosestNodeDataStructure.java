@@ -4,47 +4,46 @@ import java.util.Arrays;
 
 public class ClosestNodeDataStructure {
 
-    public record Node(double longitude, double latitude, int nodeId) implements Comparable{
+    public record Node(double longitude, double latitude, int nodeId) implements Comparable {
         @Override
-        public String toString() {
-            String node = longitude + " " + latitude;
-            return node ;
+        public String toString () {
+            return longitude + " " + latitude;
         }
 
         @Override
-        public int compareTo(Object o) {
+        public int compareTo (Object o) {
 
-            if (o.getClass() != Node.class){
-                throw new IllegalArgumentException("Compare to only for instances of Node!");
-            }
-            Node node = (Node) o;
+            if (o instanceof Node node) {
+                if (this.latitude - node.latitude < 0) {
+                    return - 1;
+                } else if (this.latitude - node.latitude > 0) {
+                    return 1;
+                } else {
+                    return 0;
+                }
 
-            if (this.latitude - node.latitude < 0) {
-                return -1;
-            } else if (this.latitude - node.latitude > 0) {
-                return 1;
             } else {
-                return 0;
+                throw new IllegalArgumentException("Compare to only for instances of Node!");
             }
         }
 
         /**
          * This method returns the distance as double to the given coordinates
-         * @param - A second node record to which the distance shall be calculated
+         *
+         * @param node - A second node record to which the distance shall be calculated
          * @return the distance from the node on which this method is called to the given coordinates
          */
-        public double getDistanceTo(Node node) {
-            double distance = Math.sqrt(Math.pow((this.longitude - node.longitude), 2) + Math.pow((this.latitude - node.latitude), 2));
-            return distance;
+        public double getDistanceTo (Node node) {
+            return Math.sqrt(Math.pow((this.longitude - node.longitude), 2) + Math.pow((this.latitude - node.latitude), 2));
         }
-    };
+    }
 
-    Node[] sortedAdjacencyGraph;
+    private final Node[] sortedAdjacencyGraph;
 
-    public ClosestNodeDataStructure(AdjacencyGraph adjacencyGraph){
+    public ClosestNodeDataStructure (AdjacencyGraph adjacencyGraph) {
 
         sortedAdjacencyGraph = new Node[adjacencyGraph.getSize()];
-        for (int i = 0; i < adjacencyGraph.getSize(); i++){
+        for (int i = 0; i < adjacencyGraph.getSize(); i++) {
             sortedAdjacencyGraph[i] = new Node(adjacencyGraph.getLongitude(i), adjacencyGraph.getLatitude(i), i);
         }
         Arrays.sort(sortedAdjacencyGraph);
@@ -52,54 +51,59 @@ public class ClosestNodeDataStructure {
 
     /**
      * This method returns the closest node to the given coordinates
+     *
      * @param longitude the x-value of the given coordinate
-     * @param latitude the y-value of the given coordinate
+     * @param latitude  the y-value of the given coordinate
      * @return the closest node to the given coordinates which is contained by sortedAdjacencyGraph
      */
-    public Node getClosestNode(double longitude, double latitude) {
-        Node imaginaryNode = new Node(longitude, latitude, -1);    // TODO Dont create new record instance right here
-        int pivotIndex = getPivotIndex(sortedAdjacencyGraph, imaginaryNode);
-        Node curClosestNode = sortedAdjacencyGraph[pivotIndex];
-        double curDistance = imaginaryNode.getDistanceTo(curClosestNode);
+    public Node getClosestNode (double longitude, double latitude) {
+        Node imaginaryNode = new Node(longitude, latitude, - 1);    // TODO Dont create new record instance right here
+        int nearestNodeIndex = this.getPivotIndex(imaginaryNode);
 
-        for (int i = 0;curDistance >= Math.abs(sortedAdjacencyGraph[pivotIndex + i].latitude - imaginaryNode.latitude); i++) {
-            if (pivotIndex + i >= sortedAdjacencyGraph.length - 1) {
+        Node closestNodeToCoords = sortedAdjacencyGraph[nearestNodeIndex];
+        double distanceToImaginaryNode = imaginaryNode.getDistanceTo(closestNodeToCoords);
+
+        // TODO: Commentary needed for understanding!!!
+        for (int i = 0; Math.abs(closestNodeToCoords.latitude - imaginaryNode.latitude) <= distanceToImaginaryNode; i++) {
+            if (nearestNodeIndex + i >= sortedAdjacencyGraph.length - 1) {
                 break;
             }
-            if (sortedAdjacencyGraph[pivotIndex + i].getDistanceTo(imaginaryNode) < curDistance) {
-                curClosestNode = sortedAdjacencyGraph[pivotIndex + i];
-                curDistance = curClosestNode.getDistanceTo(imaginaryNode);
+            if (sortedAdjacencyGraph[nearestNodeIndex + i].getDistanceTo(imaginaryNode) < distanceToImaginaryNode) {
+                closestNodeToCoords = sortedAdjacencyGraph[nearestNodeIndex + i];
+                distanceToImaginaryNode = closestNodeToCoords.getDistanceTo(imaginaryNode);
             }
         }
-        for (int i = 1; curDistance >= Math.abs(sortedAdjacencyGraph[pivotIndex - i].latitude - imaginaryNode.latitude); i++) {
-            if (pivotIndex - i <= 0) {
+        for (int i = 1; distanceToImaginaryNode >= Math.abs(sortedAdjacencyGraph[nearestNodeIndex - i].latitude - imaginaryNode.latitude); i++) {
+            if (nearestNodeIndex - i <= 0) {
                 break;
             }
-            if (sortedAdjacencyGraph[pivotIndex - i].getDistanceTo(imaginaryNode) < curDistance) {
-                curClosestNode = sortedAdjacencyGraph[pivotIndex - i];
-                curDistance = curClosestNode.getDistanceTo(imaginaryNode);
+            if (sortedAdjacencyGraph[nearestNodeIndex - i].getDistanceTo(imaginaryNode) < distanceToImaginaryNode) {
+                closestNodeToCoords = sortedAdjacencyGraph[nearestNodeIndex - i];
+                distanceToImaginaryNode = closestNodeToCoords.getDistanceTo(imaginaryNode);
             }
         }
-        return curClosestNode;
+        return closestNodeToCoords;
     }
 
 
     /**
-     * This method returns the index of the given Node[] which may be good for starting to look for the closest node :)
-     * @param nodeArray the Array to be searched for the pivot element
-     * @param node contains the coordinates of the position to look for the closest node
-     * @return the index where the node should be in the node Array
+     * This method returns the index of this instances sortedAdjacencyGraph array, which is has the nowest
+     * relative latitude to the given node
+     * If there is no node found
+     *
+     * @param node - The node with the lowest latitude will be searched for
+     * @return - Index of node in the sorted adj graph which has the lowest difference in latitude
      */
     /*
     @requires nodeArray has to be sorted by latitudes
      */
-    public static int getPivotIndex(Node[] nodeArray,Node node) {
-        int indexOfSearchPoint = Arrays.binarySearch(nodeArray, node);
-        if (indexOfSearchPoint < 0) {
-            indexOfSearchPoint = -indexOfSearchPoint;
-        }
-        if (indexOfSearchPoint >= nodeArray.length) {
-            return nodeArray.length - 1;
+    public int getPivotIndex (Node node) {
+        int indexOfSearchPoint = Arrays.binarySearch(this.sortedAdjacencyGraph, node); // TODO: What about the case
+        // if there is no nodes latitude matching the given latitude?!
+
+        indexOfSearchPoint = (indexOfSearchPoint < 0) ? indexOfSearchPoint : -indexOfSearchPoint;
+        if (indexOfSearchPoint >= this.sortedAdjacencyGraph.length) {
+            return this.sortedAdjacencyGraph.length - 1;
         }
         return indexOfSearchPoint;
     }
