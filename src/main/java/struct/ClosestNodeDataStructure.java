@@ -42,11 +42,11 @@ public class ClosestNodeDataStructure {
 
     public ClosestNodeDataStructure (AdjacencyGraph adjacencyGraph) {
 
-        sortedAdjacencyGraph = new Node[adjacencyGraph.getSize()];
-        for (int i = 0; i < adjacencyGraph.getSize(); i++) {
-            sortedAdjacencyGraph[i] = new Node(adjacencyGraph.getLongitude(i), adjacencyGraph.getLatitude(i), i);
+        this.sortedAdjacencyGraph = new Node[adjacencyGraph.getNodeCount()];
+        for (int i = 0; i < adjacencyGraph.getNodeCount(); i++) {
+            this.sortedAdjacencyGraph[i] = new Node(adjacencyGraph.getLongitudeOf(i), adjacencyGraph.getLatitudeOf(i), i);
         }
-        Arrays.sort(sortedAdjacencyGraph);
+        Arrays.sort(this.sortedAdjacencyGraph);
     }
 
     /**
