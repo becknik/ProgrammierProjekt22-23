@@ -26,7 +26,10 @@ hs_err_pid*
 .settings
 
 # Provided graph files
+toy.fmi
+MV.fmi*
 stgtregbz.fmi*
+bw.fmi*
 germany.fmi*
 
 ## Gradle & project
