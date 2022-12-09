@@ -53,12 +53,13 @@ public class GraphReader {
 
 				int sourceNode = Integer.parseInt(rawValues[0]);
 				int targetNode = Integer.parseInt(rawValues[1]);
+				int edgeDistance = Integer.parseInt(rawValues[2]);
 
 				// Logging
 				if (AdjacencyGraph.enableLogging)
 					GraphReader.logger.info(String.format("Trying to add edge no. %d\t with source node no %d,\t target node no %d\t to adjacency arrays.%n", edgeId, sourceNode, targetNode));
 
-				adjGraph.addEdgeAndCalculateDistance(edgeId, sourceNode, targetNode);
+				adjGraph.addEdge(edgeId, sourceNode, targetNode, edgeDistance);
 			}
 		} catch (FileNotFoundException e) {
 			System.err.println("Reader could not find graph file location of " + file);

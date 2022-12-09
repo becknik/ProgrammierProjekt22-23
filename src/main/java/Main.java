@@ -4,6 +4,7 @@ import struct.ClosestNodeDataStructure;
 import struct.QuadTree;
 
 import java.io.*;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.logging.FileHandler;
 import java.util.logging.SimpleFormatter;
@@ -31,18 +32,25 @@ public class Main {
 		long getNearestNodeStart = System.currentTimeMillis();
 		ClosestNodeDataStructure.Node closestNode = closestNodeDataStructure.getClosestNode(10.4, 49.52);
 		long getNearestNodeEnd = System.currentTimeMillis();
-		System.out.println("The closest Node is located at:" + closestNode);
+		System.out.println("The closest Node is located at: " + closestNode);
+
+		long onetoAllDijkstraStart = System.currentTimeMillis();
+		testAdjacencyGraph.oneToAllDijkstra(2);
+		long oneToAllDijkstraEnd = System.currentTimeMillis();
+
+		long oneToOneDijkstraStart = System.currentTimeMillis();
+		int[] thisIsTheWay = testAdjacencyGraph.oneToOneDijkstra(3, 0);
+		long oneToOneDijkstraEnd = System.currentTimeMillis();
+		System.out.println("The path from source to target is: " + Arrays.toString(thisIsTheWay));
 
 		// Benchmarking:
 		long adjacencyGraphCreationTime = createAdjacencyGraphEnd - createAdjacencyGraphStart;
 		long creatClosestNodeTime = createClosestNodeEnd - createClosestNodeStart;
 		long getNearestNodeTime = getNearestNodeEnd - getNearestNodeStart;
-		Main.logBenchmark(file, adjacencyGraphCreationTime, creatClosestNodeTime, getNearestNodeTime);
+		long oneToAllDijkstraTime = oneToAllDijkstraEnd - onetoAllDijkstraStart;
+		long oneToOneDijkstraTime = oneToOneDijkstraEnd - oneToOneDijkstraStart;
+		Main.logBenchmark(file, adjacencyGraphCreationTime, creatClosestNodeTime, getNearestNodeTime, oneToAllDijkstraTime, oneToOneDijkstraTime);
 
-		long onetoAllDijkstraStart = System.currentTimeMillis();
-		testAdjacencyGraph.oneToAllDijkstra(0);
-		long oneToAllDijkstraEnd = System.currentTimeMillis();
-		System.out.println(oneToAllDijkstraEnd - onetoAllDijkstraStart);
 	}
 
 	/**
@@ -75,12 +83,18 @@ public class Main {
 	}
 
 	private static void logBenchmark (final File graphFile, final long adjacencyGraphCreation,
-	                                  final long creatGraphDataStructure, final long getNearestNode) {
+	                                  final long creatGraphDataStructure, final long getNearestNode,
+	                                  final long oneToAllDijkstra, final long oneToOneDijkstra) {
 
-		String formattedOutput = String.format("%s@%s - %tc%n\tCreation of adjArray:\t%f sec%n\tCreation of " +
-						"graphStruct:\t%f sec%n\tGetting nearest node from coords:\t%f sec%n%n",
+		String formattedOutput = String.format(
+				"%s@%s - %tc%n\tCreation of adjArray:\t%f sec%n" +
+						"\tCreation of graphStruct:\t%f sec%n" +
+						"\tGetting nearest node from coords:\t%f sec%n" +
+						"\tExecution of One2All Dijkstra Algorithm:\t%f sec%n" +
+						"\tExecution of One2One Dijkstra Algorithm:\t%f sec%n%n",
 				System.getProperty("user.name"), System.getProperty("os.name"), new Date(),
-				adjacencyGraphCreation * 10E-4, creatGraphDataStructure * 10E-4, getNearestNode * 10E-4);
+				adjacencyGraphCreation * 10E-4, creatGraphDataStructure * 10E-4, getNearestNode * 10E-4,
+				oneToAllDijkstra * 10E-4, oneToOneDijkstra * 10E-4);
 
 		try (
 				FileWriter writer = new FileWriter(graphFile.getName() + "-benchmark.log", true)

@@ -55,9 +55,10 @@ public class AdjacencyGraph implements Graph {
 	 * @param source - The source node the edge is outgoing
 	 * @param target - The target node the edge aims to
 	 */
-	public void addEdgeAndCalculateDistance (final int edgeId, final int source, final int target) {
+	public void addEdge (final int edgeId, final int source, final int target, final int distance) {
 		sources[edgeId] = source;
 		targets[edgeId] = target;
+		distances[edgeId] = distance;
 
         /* When there is a sequence of nodes without outgoing edges in between the last observed node and the current,
          the value of the offset[last observed node+1] is copied inductively into the offset value gap until offset[current node]
@@ -69,28 +70,6 @@ public class AdjacencyGraph implements Graph {
 		}
 		// Offset value of the next row increases
 		offset[source + 1]++;
-		// Adds distance value for this edge
-		distances[edgeId] = this.calculateDistanceOf(source, target);
-	}
-
-	/**
-	 * calculates the distance between 2 nodes
-	 *
-	 * @param source
-	 * @param target
-	 * @return - the distance between source and target as double value
-	 */
-	private double calculateDistanceOf (final int source, final int target) {
-		double sourceLon, sourceLat, targetLon, targetLat, distance;
-
-		sourceLon = longitudes[source];
-		sourceLat = latitudes[source];
-		targetLon = longitudes[target];
-		targetLat = latitudes[target];
-
-		distance = Math.sqrt(Math.pow((sourceLon - targetLon), 2) + Math.pow((sourceLat - targetLat), 2));
-
-		return distance;
 	}
 
 	/**
@@ -161,17 +140,16 @@ public class AdjacencyGraph implements Graph {
 	public record DijkstraNode(int nodeId, double distance) implements Comparable {
 		@Override
 		public int compareTo (Object o) {
-			if (o instanceof DijkstraNode dijkstraNode) {
-				if (this.distance - dijkstraNode.distance > 0) {
-					return 1;
-				} else if (this.distance - dijkstraNode.distance == 0) {
-					return 0;
-				} else {
-					return -1;
-				}
-
-			} else {
+			if (o.getClass() != DijkstraNode.class) {
 				throw new IllegalArgumentException("Compare to only for instances of DijkstraNode!");
+			}
+			DijkstraNode dijkstraNode = (DijkstraNode) o;
+			if (this.distance - dijkstraNode.distance > 0) {
+				return 1;
+			} else if (this.distance - dijkstraNode.distance == 0) {
+				return 0;
+			} else {
+				return -1;
 			}
 		}
 	}
