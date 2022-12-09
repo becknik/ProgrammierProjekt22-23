@@ -87,21 +87,19 @@ public class ClosestNodeDataStructure {
 
 
 	/**
-	 * This method returns the index of this instances sortedAdjacencyGraph array, which is has the nowest
+	 * This method returns the index of the node in sortedAdjacencyGraph array, which is has the nearest
 	 * relative latitude to the given node
-	 * If there is no node found
 	 *
 	 * @param node - The node with the lowest latitude will be searched for
 	 * @return - Index of node in the sorted adj graph which has the lowest difference in latitude
 	 */
-    /*
-    @requires nodeArray has to be sorted by latitudes
-     */
 	public int getPivotIndex (Node node) {
-		int indexOfSearchPoint = Arrays.binarySearch(this.sortedAdjacencyGraph, node); // TODO: What about the case
-		// if there is no nodes latitude matching the given latitude?!
+		//Returns: index of the node, if it is contained in sortedAdjacencyGraph
+		//otherwise returns the negative index where should be
+		int indexOfSearchPoint = Arrays.binarySearch(this.sortedAdjacencyGraph, node);
 
-		indexOfSearchPoint = (indexOfSearchPoint < 0) ? indexOfSearchPoint : -indexOfSearchPoint;
+		indexOfSearchPoint = (indexOfSearchPoint < 0) ? -indexOfSearchPoint : indexOfSearchPoint;
+
 		if (indexOfSearchPoint >= this.sortedAdjacencyGraph.length) {
 			return this.sortedAdjacencyGraph.length - 1;
 		}
