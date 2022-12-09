@@ -55,7 +55,7 @@ public class AdjacencyGraph implements Graph {
 	 * @param source - The source node the edge is outgoing
 	 * @param target - The target node the edge aims to
 	 */
-	public void addEdge (final int edgeId, final int source, final int target, final int distance) {
+	public void addEdge (final int edgeId, final int source, final int target, final double distance) {
 		sources[edgeId] = source;
 		targets[edgeId] = target;
 		distances[edgeId] = distance;
@@ -173,23 +173,30 @@ public class AdjacencyGraph implements Graph {
 		openNodesDistances[fromNodeId] = 0;
 		priorityQ.add(new DijkstraNode(fromNodeId, 0));
 
+		int[] adjacentNodes;
+		int[] adjacentEdges;
+
+		int currentNodeId;
+		double oldDistanceToNodeN;
+		double updatedDistanceToNodeN;
+
 		while (!priorityQ.isEmpty()) {
 
 			DijkstraNode currentDijkstraNode = priorityQ.poll();
-			int currentNodeId = currentDijkstraNode.nodeId;
+			currentNodeId = currentDijkstraNode.nodeId;
 			closedNodesDistances[currentNodeId] = currentDijkstraNode.distance;
 
 			// Nodes are saved as arrays of node and edge Ids
-			int[] adjacentNodes = this.getOutgoingTargetNodes(currentNodeId);
-			int[] adjacentEdges = this.getOutgoingEdgesOf(currentNodeId);
+			adjacentNodes = this.getOutgoingTargetNodes(currentNodeId);
+			adjacentEdges = this.getOutgoingEdgesOf(currentNodeId);
 
 			// Add neighbour nodes (called n) to priorityQ & skip nodes which are already included in
 			// closedNodesDistances
 			for (int n = 0; n < adjacentNodes.length; n++) {
 				final int nodeN = adjacentNodes[n];
 
-				double oldDistanceToNodeN = openNodesDistances[adjacentNodes[n]];
-				double updatedDistanceToNodeN = currentDijkstraNode.distance + distances[adjacentEdges[n]];
+				oldDistanceToNodeN = openNodesDistances[adjacentNodes[n]];
+				updatedDistanceToNodeN = currentDijkstraNode.distance + distances[adjacentEdges[n]];
 
 				//skipping nodes which are already included in closedNodesDistances
 				if (closedNodesDistances[nodeN] != -1) {
