@@ -26,7 +26,7 @@ hs_err_pid*
 .settings
 
 # Provided graph files
-toy.fmi
+toy.fmi*
 MV.fmi*
 stgtregbz.fmi*
 bw.fmi*
