@@ -10,10 +10,22 @@ repositories {
 }
 
 dependencies {
+    implementation 'org.junit.jupiter:junit-jupiter:5.8.1'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
 }
 
 test {
     useJUnitPlatform()
+
+    testLogging {
+        // Sources: https://docs.gradle.org/current/javadoc/org/gradle/api/tasks/testing/logging/TestLoggingContainer.html
+
+        events "passed"
+        debug {
+            events "started", "skipped", "failed"
+            exceptionFormat "full"
+        }
+        info.events = ["failed", "skipped"]
+    }
 }
