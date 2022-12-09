@@ -12,11 +12,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestClosestNodeDataStructure {
 
-	AdjacencyGraph simpleAdjGraph;
+	AdjacencyGraph toyAdjGraph;
 
 	@BeforeEach
 	public void setUpAdjGraphs () {
-		simpleAdjGraph = GraphReader.createAdjacencyGraphOf(new File("toy.fmi"));
+		toyAdjGraph = GraphReader.createAdjacencyGraphOf(new File("toy.fmi"));
 	}
 
 	@Test
@@ -27,8 +27,8 @@ public class TestClosestNodeDataStructure {
 
 	@Test
 	public void simpleGetClosestNodeTest () {
-		ClosestNodeDataStructure closestNode = new ClosestNodeDataStructure(this.simpleAdjGraph);
+		ClosestNodeDataStructure closestNode = new ClosestNodeDataStructure(this.toyAdjGraph);
 		ClosestNodeDataStructure.Node node = closestNode.getClosestNode(0, 0);
-		assertEquals(node.nodeId(), 0);
+		assertEquals(0, node.nodeId());
 	}
 }
