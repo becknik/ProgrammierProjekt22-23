@@ -233,7 +233,21 @@ public class AdjacencyGraph implements Graph {
 		}
 	}
 
+	/**
+	 * calculates the one to one dijkstra algorithm and returns the shortest path from sourceNodeID to targetNodeID
+	 *
+	 * @param sourceNodeID the start node for the dijkstra algorithm
+	 * @param targetNodeID the target node for the dijkstra algorithm
+	 * @return shortest path from sourceNodeID to targetNodeID as int[]
+	 */
 	public int[] oneToOneDijkstra (int sourceNodeID, int targetNodeID) {
+
+		if (sourceNodeID < 0 || sourceNodeID >= longitudes.length) {
+			throw new RuntimeException("sourceNode is not included in the graph!");
+		}
+		if (targetNodeID < 0 || targetNodeID >= longitudes.length) {
+			throw new RuntimeException("targetNode is not included in the graph!");
+		}
 
 		PriorityQueue<DijkstraNode> priorityQ = new PriorityQueue<>();
 
@@ -296,7 +310,8 @@ public class AdjacencyGraph implements Graph {
 				}
 			}
 		}
-		throw new RuntimeException("You're so dumb, IntelliJ throws dumb user exception!");
+		throw new RuntimeException("You're so dumb, IntelliJ throws dumb user exception! (There exists no such path " +
+				"in the graph!)");
 	}
 
 	private static int[] getPath (int sourceNodeID, int targetNodeID, int[] predecessors) {
