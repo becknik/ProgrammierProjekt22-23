@@ -20,6 +20,7 @@ public class AdjacencyGraph implements Graph {
 
 	// Stuff to be calculated:
 	private int cachedSourceNodeID;
+	private final int[] distancesToNode; // Moved over here to waste as less time as possible in oneToAllDijkstra :/
 
 	private Comparator<DijkstraNode> dijkstraNodeComparator = (node1, node2) -> {
 		if (node1.distance - node2.distance > 0) {
@@ -39,6 +40,10 @@ public class AdjacencyGraph implements Graph {
 		sources = new int[edgeCount];
 		targets = new int[edgeCount];
 		distances = new int[edgeCount];
+
+		// Moved from oneToAllDijkstra
+		this.distancesToNode = new int[this.longitudes.length];
+		Arrays.fill(distancesToNode, -1);
 	}
 
 	private static int[] getPath (int sourceNodeID, int targetNodeID, int[] predecessors) {
@@ -168,20 +173,21 @@ public class AdjacencyGraph implements Graph {
 	 * @param fromNodeId the source node for the dijkstra algorithm
 	 */
 	public void oneToAllDijkstra (int fromNodeId) {
-		// Initial capacity is 11, maybe play around with this?
-		PriorityQueue<DijkstraNode> priorityQ = new PriorityQueue<>(42, this.dijkstraNodeComparator);
+		PriorityQueue<DijkstraNode> priorityQ = new PriorityQueue<>(42, this.dijkstraNodeComparator);   // TODO Find optimal value?
 
-		int[] distancesToNode = new int[this.longitudes.length];
-		Arrays.fill(distancesToNode, -1);
-		distancesToNode[fromNodeId] = 0;
+		// Initialization of whole array with -1 moved to constructor
+		this.distancesToNode[fromNodeId] = 0;
 
-		LinkedHashSet<Integer> closed = new LinkedHashSet<>(42);
+		HashSet<Integer> closed = new HashSet<>(this.longitudes.length / 2);  //TODO try this with full length/ different values
+		// TODO replace this with bool[]?
 
 		// Setup for first loop iteration
 		priorityQ.add(new DijkstraNode(fromNodeId, 0));
 
 		int[] currentsAdjacentNodes;
 		int[] currentsAdjacentEdges;
+
+		//TODO Try out moving definitions here again,  maybe there is a positive effect now
 
 		while (!priorityQ.isEmpty()) {
 
@@ -190,23 +196,24 @@ public class AdjacencyGraph implements Graph {
 
 			// Nodes are saved as arrays of node and edge Ids
 			currentsAdjacentNodes = this.getOutgoingTargetNodes(currentDijkstraNode.nodeId);
-			currentsAdjacentEdges = this.getOutgoingEdgesOf(currentDijkstraNode.nodeId);
+			currentsAdjacentEdges = this.getOutgoingEdgesOf(currentDijkstraNode.nodeId);    //TODO I think its impossible but remove this one
 
 			// Add neighbour nodes (called n) to priorityQ & skip nodes which are already included in closedNodesDistances
 			//skipping nodes which are already included in closedNodesDistances
-			for (int n = 0; n < currentsAdjacentNodes.length; n++) {
+			for (int n = 0; n < currentsAdjacentNodes.length; n++) {    //TODO use while loop instead to enable better out of order execution
 				final int nodeN/*eighbour*/ = currentsAdjacentNodes[n];
 				if (closed.contains(nodeN)) continue;
 
-				final int oldDistanceToNodeN = distancesToNode[nodeN];
+				final int oldDistanceToNodeN = this.distancesToNode[nodeN];
 				final int distanceFromCurrentToNodeN = currentDijkstraNode.distance + distances[currentsAdjacentEdges[n]];
 
 				// If the current path in the graph has a better distance than the previous, update it in Q & array
 				if (oldDistanceToNodeN == -1 || distanceFromCurrentToNodeN < oldDistanceToNodeN) {
-					distancesToNode[nodeN] = distanceFromCurrentToNodeN;
+					this.distancesToNode[nodeN] = distanceFromCurrentToNodeN;
 
-					if (oldDistanceToNodeN != -1) priorityQ.remove(nodeN);
-					priorityQ.add(new DijkstraNode(nodeN, distanceFromCurrentToNodeN));
+					if (oldDistanceToNodeN != -1)
+						priorityQ.remove(nodeN);  // Works because overwritten equals method for DijkstraNode
+					priorityQ.add(new DijkstraNode(nodeN, distanceFromCurrentToNodeN));     // TODO recycle records by using arrays/ local classes
 				}
 			}
 		}
@@ -312,7 +319,7 @@ public class AdjacencyGraph implements Graph {
 	public record DijkstraNode(int nodeId, int distance) {
 		@Override
 		public boolean equals (Object o) {
-			return ((Integer) o) == this.nodeId;
+			return ((int) o) == this.nodeId;
 		}
 	}
 }
