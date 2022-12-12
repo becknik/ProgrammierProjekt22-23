@@ -10,7 +10,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 import struct.AdjacencyGraph;
 
 import java.io.File;
-import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.Optional;
 
 public class DijkstraTest {
 
@@ -40,20 +41,20 @@ public class DijkstraTest {
 		int targetNode = 0;     // TODO How to do test parameterization with multiple parameters?
 
 		long oneToOneDijkstraStart = System.currentTimeMillis();
-		int[] thisIsTheWay = this.adjGraph.oneToOneDijkstra(sourceNode, targetNode);
+		Optional<LinkedList<Integer>> thisIsTheWay = this.adjGraph.dijkstra(sourceNode, targetNode);
 		long oneToOneDijkstraEnd = System.currentTimeMillis();
 
 		long oneToOneDijkstraElapsedTime = oneToOneDijkstraEnd - oneToOneDijkstraStart;
 
 		Logging.logTestBenchmark(DijkstraTest.graphFileType, "oneToOne", oneToOneDijkstraElapsedTime);
-		System.out.println("The path from node" + sourceNode + " to " + targetNode + ":\n" + Arrays.toString(thisIsTheWay));
+		System.out.println("The path from node" + sourceNode + " to " + targetNode + ":\n" + thisIsTheWay.get());
 	}
 
 	@Tag("Benchmark")
 	@RepeatedTest(TEST_REPETITIONS)
 	public void oneToAllBenchmark () {
 		long oneToAllDijkstraStart = System.currentTimeMillis();
-		this.adjGraph.oneToAllDijkstra(12323);
+		this.adjGraph.dijkstra(12323);
 		long oneToAllDijkstraEnd = System.currentTimeMillis();
 
 		long oneToAllDijkstraElapsedTime = oneToAllDijkstraEnd - oneToAllDijkstraStart;
