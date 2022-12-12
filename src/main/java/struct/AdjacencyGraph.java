@@ -1,9 +1,7 @@
 package struct;
 
 import java.io.PrintStream;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.PriorityQueue;
+import java.util.*;
 import java.util.logging.Logger;
 
 public class AdjacencyGraph implements Graph {
@@ -15,13 +13,33 @@ public class AdjacencyGraph implements Graph {
 	final double[] latitudes;
 
 	// Edge stuff, referenced by edge indices
-	private final int[] sources;
+	private final int[] sources;    // TODO Maybe delete this?
 	private final int[] targets;
 	private final int[] offset;
+	private final int[] distances;
+
 	// Stuff to be calculated:
-	private final double[] distances;
 	private int cachedSourceNodeID;
-	private double[] distanceOneToAll;
+	private final int[] distancesToNode; // Moved over here to waste as less time as possible in oneToAllDijkstra :/
+
+	record DijkstraNode(int nodeId, int incrementalDistance) {
+		@Override
+		public boolean equals (Object obj) {    // TODO Maybe add type checks if efficient?
+			return ((int) obj) == this.nodeId;      // This one came straight out of hell.
+		}
+	}
+
+	// This one is by far a beauty, but 1-2 sec slower :(
+	// private final Comparator<DijkstraNode> dijkstraNodeComparator = Comparator.comparingInt(DijkstraNode::incrementalDistance);
+	private final Comparator<DijkstraNode> dijkstraNodeComparator = (nodeOne, nodeTwo) -> {
+		if (nodeOne.incrementalDistance - nodeTwo.incrementalDistance > 0) {    // TODO check if Integer.compare is faster here
+			return 1;
+		} else if (nodeOne.incrementalDistance - nodeTwo.incrementalDistance < 0) {
+			return -1;
+		} else {
+			return 0;
+		}
+	};
 
 	public AdjacencyGraph (int nodeCount, int edgeCount) {
 		longitudes = new double[nodeCount];
@@ -30,9 +48,11 @@ public class AdjacencyGraph implements Graph {
 
 		sources = new int[edgeCount];
 		targets = new int[edgeCount];
-		distances = new double[edgeCount];
+		distances = new int[edgeCount];
 
-		distanceOneToAll = new double[nodeCount];
+		// Moved from oneToAllDijkstra
+		this.distancesToNode = new int[this.longitudes.length];
+		Arrays.fill(distancesToNode, -1);
 	}
 
 	/**
@@ -55,7 +75,7 @@ public class AdjacencyGraph implements Graph {
 	 * @param source - The source node the edge is outgoing
 	 * @param target - The target node the edge aims to
 	 */
-	public void addEdge (final int edgeId, final int source, final int target, final double distance) {
+	public void addEdge (final int edgeId, final int source, final int target, final int distance) {
 		sources[edgeId] = source;
 		targets[edgeId] = target;
 		distances[edgeId] = distance;
@@ -137,173 +157,112 @@ public class AdjacencyGraph implements Graph {
 		return indizes;
 	}
 
-	public record DijkstraNode(int nodeId, double distance) implements Comparable {
-		@Override
-		public int compareTo (Object o) {
-			if (o.getClass() != DijkstraNode.class) {
-				throw new IllegalArgumentException("Compare to only for instances of DijkstraNode!");
-			}
-			DijkstraNode dijkstraNode = (DijkstraNode) o;
-			if (this.distance - dijkstraNode.distance > 0) {
-				return 1;
-			} else if (this.distance - dijkstraNode.distance == 0) {
-				return 0;
-			} else {
-				return -1;
-			}
-		}
-	}
-
 	/**
-	 * calculates the oneToAllDijkstra
+	 * TODO
+	 * TODO Refactor
 	 *
-	 * @param fromNodeId the source node for the dijkstra algorithm
+	 * @param nodeIds
+	 * @return
 	 */
-	public void oneToAllDijkstra (int fromNodeId) {
-		PriorityQueue<DijkstraNode> priorityQ = new PriorityQueue<>();
+	public Optional<LinkedList<Integer>> dijkstra (final int... nodeIds) {
+		/*
+		 Initialization of source node and target node, offensive programming & determination, if oneToOne should be executed
+		 */
+		if (nodeIds.length == 0 || nodeIds.length > 2)
+			throw new IllegalArgumentException("0 or more than 2 nodes are specified as arguments.");
 
-		// Nodes which are already viewed at least one time & shortest path is not known so far
-		double[] openNodesDistances = new double[this.longitudes.length];
-		// Nodes of which the shortest path is know already and therefore should not be viewed again
-		double[] closedNodesDistances = new double[this.longitudes.length];
-		Arrays.fill(openNodesDistances, -1);
-		Arrays.fill(closedNodesDistances, -1);
+		final int sourceNodeId = nodeIds[0];
+		if (sourceNodeId < 0 || longitudes.length <= sourceNodeId)
+			throw new IllegalArgumentException("Source node is negative or greater than the maximal node ID.");
 
-		// Setup for first loop iteration BANANA
-		openNodesDistances[fromNodeId] = 0;
-		priorityQ.add(new DijkstraNode(fromNodeId, 0));
+		final boolean oneToOneDijkstra = nodeIds.length == 2;
+		final int targetNodeId = (oneToOneDijkstra) ? nodeIds[1] : 0;
 
-		int[] adjacentNodes;
-		int[] adjacentEdges;
+		if (oneToOneDijkstra && targetNodeId < 0 || longitudes.length <= targetNodeId)
+			throw new IllegalArgumentException("Target node is negative or greater than the maximum node ID");
 
-		int currentNodeId;
-		double oldDistanceToNodeN;
-		double updatedDistanceToNodeN;
+		final int[] predecessorNodes = (oneToOneDijkstra) ? new int[this.longitudes.length] : null;
+		int currentsPredecessor = -1;   // TODO Maybe remove this
 
-		while (!priorityQ.isEmpty()) {
 
-			DijkstraNode currentDijkstraNode = priorityQ.poll();
-			currentNodeId = currentDijkstraNode.nodeId;
-			closedNodesDistances[currentNodeId] = currentDijkstraNode.distance;
+		/*
+		This is where the fun beginns!
+		 */
+		// TODO: Implement a priority queue which works with primitive ints (?) :(
+		PriorityQueue<DijkstraNode> priorityQ = new PriorityQueue<>(73, this.dijkstraNodeComparator);
+		// The favourite number of Sheldon Cooper for the win of our programming project! (Testing says better than 42, 69, 127 & 420!)
 
-			// Nodes are saved as arrays of node and edge Ids
-			adjacentNodes = this.getOutgoingTargetNodes(currentNodeId);
-			adjacentEdges = this.getOutgoingEdgesOf(currentNodeId);
-
-			// Add neighbour nodes (called n) to priorityQ & skip nodes which are already included in
-			// closedNodesDistances
-			for (int n = 0; n < adjacentNodes.length; n++) {
-				final int nodeN = adjacentNodes[n];
-
-				oldDistanceToNodeN = openNodesDistances[adjacentNodes[n]];
-				updatedDistanceToNodeN = currentDijkstraNode.distance + distances[adjacentEdges[n]];
-
-				//skipping nodes which are already included in closedNodesDistances
-				if (closedNodesDistances[nodeN] != -1) {
-					continue;
-				}
-				// Updates distance for n in array & adds it to priorityQ
-				else if (oldDistanceToNodeN == -1) {
-					openNodesDistances[adjacentNodes[n]] = updatedDistanceToNodeN;
-					priorityQ.add(new DijkstraNode(adjacentNodes[n], updatedDistanceToNodeN));
-				}
-				// If the current path in the graph has a better distance than the previous, update it in Q & array
-				else if (updatedDistanceToNodeN < oldDistanceToNodeN) {
-					openNodesDistances[adjacentNodes[n]] = updatedDistanceToNodeN;
-
-					priorityQ.removeIf(openNode -> openNode.nodeId == nodeN);
-					priorityQ.add(new DijkstraNode(adjacentNodes[n], updatedDistanceToNodeN));
-				}
-			}
-		}
-	}
-
-	/**
-	 * calculates the one to one dijkstra algorithm and returns the shortest path from sourceNodeID to targetNodeID
-	 *
-	 * @param sourceNodeID the start node for the dijkstra algorithm
-	 * @param targetNodeID the target node for the dijkstra algorithm
-	 * @return shortest path from sourceNodeID to targetNodeID as int[]
-	 */
-	public int[] oneToOneDijkstra (int sourceNodeID, int targetNodeID) {
-
-		if (sourceNodeID < 0 || sourceNodeID >= longitudes.length) {
-			throw new RuntimeException("sourceNode is not included in the graph!");
-		}
-		if (targetNodeID < 0 || targetNodeID >= longitudes.length) {
-			throw new RuntimeException("targetNode is not included in the graph!");
-		}
-
-		PriorityQueue<DijkstraNode> priorityQ = new PriorityQueue<>();
-
-		// Nodes which are already viewed at least one time & shortest path is not known so far
-		double[] openNodesDistances = new double[this.longitudes.length];
-		// Nodes of which the shortest path is know already and therefore should not be viewed again
-		double[] closedNodesDistances = new double[this.longitudes.length];
-		Arrays.fill(openNodesDistances, -1);
-		Arrays.fill(closedNodesDistances, -1);
-
-		int[] predecessors = new int[this.longitudes.length];
-		Arrays.fill(predecessors, -1);    //TODO Remove this if the algorithm seems to work properly
-		int currentNodesPredecessor = sourceNodeID;
+		// Initialization of whole array with -1 values was moved to constructor for performance reasons
+		this.distancesToNode[sourceNodeId] = 0;     // TODO Maybe move them (Array & Comparator) in again?
 
 		// Setup for first loop iteration
-		openNodesDistances[sourceNodeID] = 0;
-		priorityQ.add(new DijkstraNode(sourceNodeID, 0));
+		priorityQ.add(new DijkstraNode(sourceNodeId, 0));
+
+		// Declaring variable for the current watched nodes and its adjacent nodes, obviously for performance reasons :|
+		DijkstraNode currentDijkstraNode;
+		int[] currentsAdjacentNodes;
+		int[] currentsAdjacentEdges;
 
 		while (!priorityQ.isEmpty()) {
+			currentDijkstraNode = priorityQ.poll();
 
-			DijkstraNode currentDijkstraNode = priorityQ.poll();
-			int currentNodeId = currentDijkstraNode.nodeId;
-			closedNodesDistances[currentNodeId] = currentDijkstraNode.distance;
+			// TODO See second TODO
+			// Sets the value of current node in predecessorNodes array to the last closed nodes id & then sets the value of currentsPredecessor
+			// to its own ID for the next closed node
+			/*if (oneToOneDijkstra) {
+				predecessorNodes[currentDijkstraNode.nodeId] = currentsPredecessor;
+				currentsPredecessor = currentDijkstraNode.nodeId;
+			}*/
 
-			if (currentNodeId == targetNodeID) {
-				return getPath(sourceNodeID, targetNodeID, predecessors);
-			}
+			if (oneToOneDijkstra && currentDijkstraNode.nodeId == targetNodeId)
+				return this.getPath(sourceNodeId, targetNodeId, predecessorNodes);
 
 			// Nodes are saved as arrays of node and edge Ids
-			int[] adjacentNodes = this.getOutgoingTargetNodes(currentNodeId);
-			int[] adjacentEdges = this.getOutgoingEdgesOf(currentNodeId);
+			currentsAdjacentNodes = this.getOutgoingTargetNodes(currentDijkstraNode.nodeId);
+			currentsAdjacentEdges = this.getOutgoingEdgesOf(currentDijkstraNode.nodeId);
 
-			// Add neighbour nodes (called n) to priorityQ & skip nodes which are already included in
-			// closedNodesDistances
-			for (int n = 0; n < adjacentNodes.length; n++) {
-				final int nodeN = adjacentNodes[n];
+			// Adding adjacent nodes of current (called N for Neighbour) to priorityQ
+			//for (int n = 0; n < currentsAdjacentNodes.length; n++) {  // We tried to do HotSpots work right here
+			int n = 0;
+			while (n < currentsAdjacentNodes.length) {
+				int nodeN = currentsAdjacentNodes[n]; // Neighbour node to the current node
 
-				double oldDistanceToNodeN = openNodesDistances[adjacentNodes[n]];
-				double updatedDistanceToNodeN = currentDijkstraNode.distance + distances[adjacentEdges[n]];
+				final int oldDistanceToNodeN = this.distancesToNode[nodeN];
+				final int updatedDistanceToNodeN =
+						currentDijkstraNode.incrementalDistance + distances[currentsAdjacentEdges[n]];
 
-				//skipping nodes which are already included in closedNodesDistances
-				if (closedNodesDistances[nodeN] != -1) {
-					continue;
+				// If the current path to node N(eighbour) has a better distance than the previous one || node N is an open node, update||set it in priorityQ & array
+				if (oldDistanceToNodeN == -1 || updatedDistanceToNodeN < oldDistanceToNodeN) {
+					this.distancesToNode[nodeN] = updatedDistanceToNodeN;
+
+					if (oldDistanceToNodeN != -1)
+						priorityQ.remove(nodeN);    // This works due to overwritten equals method in the record which explodes if the parameter is something else than int
+
+					// n++ is here due to the optimization stuff HotSpot should actually do D:
+					if (oneToOneDijkstra)
+						predecessorNodes[currentsAdjacentNodes[n++]] = currentDijkstraNode.nodeId;  // TODO This might be wrong, right?
+
+					priorityQ.add(new DijkstraNode(nodeN, updatedDistanceToNodeN));
 				}
-				// Updates distance for n in array & adds it to priorityQ
-				else if (oldDistanceToNodeN == -1) {
-					openNodesDistances[adjacentNodes[n]] = updatedDistanceToNodeN;
-					priorityQ.add(new DijkstraNode(adjacentNodes[n], updatedDistanceToNodeN));
-
-					predecessors[adjacentNodes[n]] = currentNodeId;
-				}
-				// If the current path in the graph has a better distance than the previous, update it in Q & array
-				else if (updatedDistanceToNodeN < oldDistanceToNodeN) {
-					openNodesDistances[adjacentNodes[n]] = updatedDistanceToNodeN;
-
-					priorityQ.removeIf(openNode -> openNode.nodeId == nodeN);
-					priorityQ.add(new DijkstraNode(adjacentNodes[n], updatedDistanceToNodeN));
-
-					predecessors[adjacentNodes[n]] = currentNodeId;
-				}
+				n++;    // May HotSpot be with you!
 			}
 		}
-		throw new RuntimeException("You're so dumb, IntelliJ throws dumb user exception! (There exists no such path " +
-				"in the graph!)");
+		return Optional.empty();
 	}
 
-	private static int[] getPath (int sourceNodeID, int targetNodeID, int[] predecessors) {
-		// get path from source to target via predecessors[]
+	/**
+	 * TODO
+	 *
+	 * @param sourceNodeID
+	 * @param targetNodeID
+	 * @param predecessors
+	 * @return
+	 */
+	private Optional<LinkedList<Integer>> getPath (int sourceNodeID, int targetNodeID, int[] predecessors) {
 		int pathIteratorBuffer = targetNodeID;
-		LinkedList<Integer> path = new LinkedList<>();
+		LinkedList<Integer> path = new LinkedList<>();  // TODO Find more efficient type for this
 
+		// Building the path by following it in the inverted direction and pushing it to the linked list path
 		while (pathIteratorBuffer != sourceNodeID) {
 			path.push(pathIteratorBuffer);
 			pathIteratorBuffer = predecessors[pathIteratorBuffer];
@@ -311,12 +270,9 @@ public class AdjacencyGraph implements Graph {
 		}
 		path.push(sourceNodeID);    // Adds the source node to the path
 
-		int[] pathAsArray = new int[path.size()];
-		for (int i = 0; i < pathAsArray.length; i++) {
-			pathAsArray[i] = path.get(i);
-		}
-		return pathAsArray;
+		return Optional.of(path);
 	}
+
 
 	public int getNodeCount () {
 		return this.longitudes.length;
@@ -328,9 +284,5 @@ public class AdjacencyGraph implements Graph {
 
 	public double getLatitudeOf (int index) {
 		return latitudes[index];
-	}
-
-	public double getDistanceOf (int index) {
-		return distances[index];
 	}
 }

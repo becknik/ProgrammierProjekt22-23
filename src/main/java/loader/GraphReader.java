@@ -53,7 +53,7 @@ public class GraphReader {
 
 				int sourceNode = Integer.parseInt(rawValues[0]);
 				int targetNode = Integer.parseInt(rawValues[1]);
-				double edgeDistance = Double.parseDouble(rawValues[2]);
+				int edgeDistance = Integer.parseInt(rawValues[2]);
 
 				// Logging
 				if (AdjacencyGraph.enableLogging)
