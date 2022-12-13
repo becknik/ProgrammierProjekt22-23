@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import struct.AdjacencyGraph;
-import struct.DijkstraRun;
+import struct.DijkstraResult;
 
 import java.io.File;
 
@@ -40,13 +40,13 @@ public class DijkstraTest {
 		// TODO How to do test parameterization with multiple parameters?
 
 		long oneToOneDijkstraStart = System.currentTimeMillis();
-		DijkstraRun dijkstraRun = this.adjGraph.dijkstra(0, targetNode);
+		DijkstraResult dijkstraResult = this.adjGraph.dijkstra(0, targetNode);
 		long oneToOneDijkstraEnd = System.currentTimeMillis();
 
 		long oneToOneDijkstraElapsedTime = oneToOneDijkstraEnd - oneToOneDijkstraStart;
 
 		Logging.logTestBenchmark(DijkstraTest.graphFileType, "oneToOne", oneToOneDijkstraElapsedTime);
-		System.out.println("The path from node 0 to " + targetNode + ":\n" + dijkstraRun.getPath());
+		System.out.println("The path from node 0 to " + targetNode + ":\n" + dijkstraResult.getPath());
 	}
 
 	@Tag("Benchmark")

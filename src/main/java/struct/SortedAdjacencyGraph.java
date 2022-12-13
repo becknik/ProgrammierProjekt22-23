@@ -2,6 +2,9 @@ package struct;
 
 import java.util.Arrays;
 
+/**
+ * TODO JavaDoc & Cleanup
+ */
 public class SortedAdjacencyGraph {
 
 	public record Node(double longitude, double latitude, int nodeId) implements Comparable {

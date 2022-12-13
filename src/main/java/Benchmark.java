@@ -1,6 +1,6 @@
 import loader.GraphReader;
 import struct.AdjacencyGraph;
-import struct.DijkstraRun;
+import struct.DijkstraResult;
 import struct.SortedAdjacencyGraph;
 
 import javax.naming.OperationNotSupportedException;
@@ -54,8 +54,8 @@ public class Benchmark {
 				// TODO set oneToOneDistance to the distance from
 				// oneToOneSourceNodeId to oneToOneSourceNodeId as computed by
 				// the one-to-one Dijkstra
-				DijkstraRun dijkstraRunToOne = adjacencyGraph.dijkstra(oneToOneSourceNodeId, oneToOneTargetNodeId);
-				oneToOneDistance = dijkstraRunToOne.getDistanceFromPath();
+				DijkstraResult dijkstraResultToOne = adjacencyGraph.dijkstra(oneToOneSourceNodeId, oneToOneTargetNodeId);
+				oneToOneDistance = dijkstraResultToOne.getDistanceFromPath();
 				System.out.println(oneToOneDistance);
 			}
 		} catch (Exception e) {
@@ -68,7 +68,7 @@ public class Benchmark {
 		System.out.println("Computing one-to-all Dijkstra from node id " + sourceNodeId);
 		long oneToAllStart = System.currentTimeMillis();
 		// TODO: run one-to-all Dijkstra here
-		DijkstraRun dijkstraRunToAll = adjacencyGraph.dijkstra(sourceNodeId);
+		DijkstraResult dijkstraResultToAll = adjacencyGraph.dijkstra(sourceNodeId);
 		long oneToAllEnd = System.currentTimeMillis();
 		System.out.println("\tone-to-all Dijkstra took " + (oneToAllEnd - oneToAllStart) + "ms");
 
@@ -80,12 +80,12 @@ public class Benchmark {
 		// targetNodeId as computed by the one-to-all Dijkstra
 		ArrayDeque<Integer> pathToInput = new ArrayDeque<>();
 		try {
-			pathToInput = dijkstraRunToAll.getPathTo(targetNodeId);
+			pathToInput = dijkstraResultToAll.getPathTo(targetNodeId);
 		} catch (OperationNotSupportedException e) {
 			System.err.println("Something clearly seems to be wrong with your entered node ID. :)");
 			e.printStackTrace();
 		}
-		oneToAllDistance = dijkstraRunToAll.getDistanceFromPath(pathToInput);
+		oneToAllDistance = dijkstraResultToAll.getDistanceFromPath(pathToInput);
 		System.out.println("Distance from " + sourceNodeId + " to " + targetNodeId + " is " + oneToAllDistance);
 	}
 

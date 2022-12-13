@@ -5,7 +5,10 @@ import java.util.ArrayDeque;
 import java.util.HashSet;
 import java.util.function.Predicate;
 
-public class DijkstraRun {
+/**
+ * TODO JavaDoc
+ */
+public class DijkstraResult {
 	enum RunType {
 		ONE_TO_ALL(),
 		ONE_TO_ONE()
@@ -32,7 +35,7 @@ public class DijkstraRun {
 	private ArrayDeque<Integer> path;
 	private int sourceNodeId;
 
-	private DijkstraRun (final AdjacencyGraph adjacencyGraph, final int[] predecessorEdgeIds) {
+	private DijkstraResult (final AdjacencyGraph adjacencyGraph, final int[] predecessorEdgeIds) {
 		assert adjacencyGraph != null;
 		assert predecessorEdgeIds != null;
 		assert predecessorEdgeIds.length == adjacencyGraph.getNodeCount();
@@ -41,7 +44,7 @@ public class DijkstraRun {
 		this.predecessorEdgeIds = predecessorEdgeIds;
 	}
 
-	DijkstraRun (final AdjacencyGraph adjacencyGraph, final int[] predecessorEdgeIds, final ArrayDeque<Integer> path) {
+	DijkstraResult (final AdjacencyGraph adjacencyGraph, final int[] predecessorEdgeIds, final ArrayDeque<Integer> path) {
 		this(adjacencyGraph, predecessorEdgeIds);
 
 		assert path != null;
@@ -51,16 +54,17 @@ public class DijkstraRun {
 		this.path = path;
 	}
 
-	DijkstraRun (final AdjacencyGraph adjacencyGraph, final int[] predecessorEdgeIds, final int sourceNodeId) {
+	DijkstraResult (final AdjacencyGraph adjacencyGraph, final int[] predecessorEdgeIds, final int sourceNodeId) {
 		this(adjacencyGraph, predecessorEdgeIds);
 
 		assert 0 <= sourceNodeId;
 		assert sourceNodeId <= this.adjacencyGraph.getNodeCount();
 		assert predecessorEdgeIds[sourceNodeId] < this.adjacencyGraph.getNodeCount();
-		assert this.isOneToAllCorrect();    // Precondition checks consistency of predecessorEdgeIds
 
 		this.runType = RunType.ONE_TO_ALL;
 		this.sourceNodeId = sourceNodeId;
+
+		assert this.isOneToAllCorrect();    // Precondition checks consistency of predecessorEdgeIds
 	}
 
 	private boolean isOneToAllCorrect () {
@@ -72,7 +76,7 @@ public class DijkstraRun {
 
 	public int getDistanceFromPath () throws OperationNotSupportedException {
 		if (this.runType == RunType.ONE_TO_ALL)
-			throw new OperationNotSupportedException("Operation must not be called on an one to all DijkstraRun object.");
+			throw new OperationNotSupportedException("Operation must not be called on an one to all DijkstraResult object.");
 
 		return getDistanceFromPath(this.path);
 	}
@@ -91,7 +95,7 @@ public class DijkstraRun {
 
 	public ArrayDeque<Integer> getPathTo (final int targetNodeId) throws OperationNotSupportedException {
 		if (this.runType == RunType.ONE_TO_ONE)
-			throw new OperationNotSupportedException("Operation must not be called on an one to one DijkstraRun object.");
+			throw new OperationNotSupportedException("Operation must not be called on an one to one DijkstraResult object.");
 		if (this.sourceNodeId != targetNodeId)
 			throw new IllegalArgumentException("Target node must not have the same index as source node.");
 		if (this.adjacencyGraph.getNodeCount() <= targetNodeId)

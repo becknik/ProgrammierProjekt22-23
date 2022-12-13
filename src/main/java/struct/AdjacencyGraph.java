@@ -7,6 +7,12 @@ import java.util.Comparator;
 import java.util.PriorityQueue;
 import java.util.logging.Logger;
 
+/**
+ * Instances should be created by {@code GraphReader}.
+ * Stores all essential data provided by the FMI plain text graph files in huge arrays: node long/ lat, edge source, target &
+ * distance. Values of these arrays are internally accessed by IDs, which are equivalent to the arrays indices.
+ * Provides operation for running the dijkstra algorithm
+ */
 public class AdjacencyGraph implements Graph {
 	private static final Logger logger = Logger.getLogger(AdjacencyGraph.class.getName());
 	public static boolean enableLogging;
@@ -24,7 +30,15 @@ public class AdjacencyGraph implements Graph {
 	private int cachedSourceNodeID;
 
 	// I now understand why they call java dynamically & bad playing with arrays.
-	// Using int Arrays instead of this increases runtime from 8 -> 21 sec. Factor 2.5!
+	// Using int Arrays instead of this increases runtime from 8 -> 21 sec. Factor 2.5! (how is this even possible?)
+
+	/**
+	 * Holds the incremental, greedily set distance value to a specified node ID in the {@code dijkstra} operation &
+	 * sets it in relation to the nodes ID. Used for picking the best node available from a priorityQ using a local comparator instance
+	 *
+	 * @param nodeId              Node ID
+	 * @param incrementalDistance The steadily lowering distance value, which is updated by dereffering to the outdated record instance
+	 */
 	private record DijkstraNode(int nodeId, int incrementalDistance) {
 		@Override
 		public boolean equals (Object obj) {
@@ -34,6 +48,12 @@ public class AdjacencyGraph implements Graph {
 		}
 	}
 
+	/**
+	 * Object creation by initializing the arrays. TODO: Merge GraphReader in here??
+	 *
+	 * @param nodeCount
+	 * @param edgeCount
+	 */
 	public AdjacencyGraph (int nodeCount, int edgeCount) {
 		assert nodeCount > 0 && edgeCount > 0;
 
@@ -47,23 +67,23 @@ public class AdjacencyGraph implements Graph {
 	}
 
 	/**
-	 * Adds a new node by specifying the nodes ID, longitude & latitude
+	 * Adds a new node to the corresponding arrays by the nodes ID to set its longitude & latitude
 	 *
-	 * @param nodeId    Number of occurrence in the graph file
+	 * @param nodeId #Number of occurrence in the graph file, starting counting from 0
 	 * @param longitude Corresponding longitude
 	 * @param latitude  Corresponding latitude
 	 */
 	public void addNode (final int nodeId, final double longitude, final double latitude) {
 		if (nodeId < 0) throw new IllegalArgumentException("Provided node ID is < 0.");
 		else if (this.longitudes.length <= nodeId)
-			throw new IllegalArgumentException("Provided nodes ID is higher than the count of nodes.");
+			throw new IllegalArgumentException("Provided nodes ID is higher than the maximum index.");
 
 		longitudes[nodeId] = longitude;
 		latitudes[nodeId] = latitude;
 	}
 
 	/**
-	 * Adds an edge to the sourceId & target ID array, using the sourceId & target ID node and the corresponding distance
+	 * Adds an edge to the sourceId & target ID array, using the source & target node ID and the corresponding distance
 	 *
 	 * @param edgeId   - The ID of the edge (one probably habe more edges)
 	 * @param sourceId - The sourceId node the edge is outgoing
@@ -101,11 +121,11 @@ public class AdjacencyGraph implements Graph {
 	 * monitored due to the nature of the algorithm, that the distance can't get any better for them.
 	 *
 	 * @param nodeIds First node is the source node, second one is target. Second one can be neglected for on to all dijkstra execution
-	 * @return Optional.empty(), if the one to all is executed, else the path of edge IDs as linked list wrapped in Optional object
+	 * @return {@code DijkstraResult} wrapper object, which holds information about the {@code AdjacencyGraph}, if 2All or 2One was executed, the predecessors array & the starting node/ path
 	 *
 	 * @throws IllegalArgumentException {@code this.dijkstraDefensiveProgrammingChecks}
 	 */
-	public DijkstraRun dijkstra (final int... nodeIds) {
+	public DijkstraResult dijkstra (final int... nodeIds) {
 		this.dijkstraDefensiveProgrammingChecks(nodeIds);
 
 		// Initialization of source node and target node & determination, if oneToOne should be executed
@@ -154,7 +174,7 @@ public class AdjacencyGraph implements Graph {
 
 			if (oneToOneDijkstra && currentDijkstraNode.nodeId == targetNodeId) {
 				ArrayDeque<Integer> path = this.getPath(sourceNodeId, targetNodeId, predecessorEdges);
-				return new DijkstraRun(this, predecessorEdges, path);
+				return new DijkstraResult(this, predecessorEdges, path);
 			}
 
 			// Adjacent neighbour nodes & edges are saved as arrays of node and edge Ids
@@ -182,7 +202,7 @@ public class AdjacencyGraph implements Graph {
 				}
 			}
 		}
-		return new DijkstraRun(this, predecessorEdges, sourceNodeId);
+		return new DijkstraResult(this, predecessorEdges, sourceNodeId);
 	}
 
 	/**
@@ -240,8 +260,8 @@ public class AdjacencyGraph implements Graph {
 	}
 
 	/**
-	 * Returns the path (edge IDs) from source to target by iteratively going through the predecessorEdgeIds array, starting from target node IDs.
-	 * Uses dequeue to push the edge IDs into the right order
+	 * Returns the path (edge IDs) from source to target by iteratively going through the predecessorEdgeIds array,
+	 * starting from target node IDs. Uses dequeue to push the edge IDs into the right order
 	 *
 	 * @param sourceNodeId       The source node of the path
 	 * @param targetNodeId       The target node of the path
