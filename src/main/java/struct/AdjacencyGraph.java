@@ -18,9 +18,9 @@ public class AdjacencyGraph implements Graph {
 	private final int[] offset;
 	private final int[] distances;
 
-	// Stuff to be calculated:
+	// Stuff to be written by add & dijkstra operations:
 	private int cachedSourceNodeID;
-	private final int[] distancesToNode; // Moved over here to waste as less time as possible in oneToAllDijkstra :/
+	private final int[] dijkstraDistancesToSource; // Moved over here to waste as less time as possible in dijkstra :/
 
 	record DijkstraNode(int nodeId, int incrementalDistance) {
 		@Override
@@ -28,18 +28,6 @@ public class AdjacencyGraph implements Graph {
 			return ((int) obj) == this.nodeId;      // This one came straight out of hell.
 		}
 	}
-
-	// This one is by far a beauty, but 1-2 sec slower :(
-	// private final Comparator<DijkstraNode> dijkstraNodeComparator = Comparator.comparingInt(DijkstraNode::incrementalDistance);
-	private final Comparator<DijkstraNode> dijkstraNodeComparator = (nodeOne, nodeTwo) -> {
-		if (nodeOne.incrementalDistance - nodeTwo.incrementalDistance > 0) {    // TODO check if Integer.compare is faster here
-			return 1;
-		} else if (nodeOne.incrementalDistance - nodeTwo.incrementalDistance < 0) {
-			return -1;
-		} else {
-			return 0;
-		}
-	};
 
 	public AdjacencyGraph (int nodeCount, int edgeCount) {
 		longitudes = new double[nodeCount];
@@ -50,30 +38,30 @@ public class AdjacencyGraph implements Graph {
 		targets = new int[edgeCount];
 		distances = new int[edgeCount];
 
-		// Moved from oneToAllDijkstra
-		this.distancesToNode = new int[this.longitudes.length];
-		Arrays.fill(distancesToNode, -1);
+		// Moved from dijkstra method - oneToAll
+		this.dijkstraDistancesToSource = new int[this.longitudes.length];
+		Arrays.fill(this.dijkstraDistancesToSource, -1);
 	}
 
 	/**
-	 * Simply adds some node by specifying the nodes ID, longitude & latitude
+	 * Adds a new node by specifying the nodes ID, longitude & latitude
 	 *
-	 * @param nodeId    - Number of occurrence in the graph file
-	 * @param longitude
-	 * @param latitude
+	 * @param nodeId    Number of occurrence in the graph file
+	 * @param longitude Corresponding longitude
+	 * @param latitude  Corresponding latitude
 	 */
-	public void addNode (int nodeId, double longitude, double latitude) {
+	public void addNode (final int nodeId, final double longitude, final double latitude) {
 		longitudes[nodeId] = longitude;
 		latitudes[nodeId] = latitude;
 	}
 
 	/**
-	 * Adds an edge to the source & target array and calculates the distance by calling the {@code calculateDistances}
-	 * and saving the result to the distances array.
+	 * Adds an edge to the source & target array, using the source & target node and the corresponding distance
 	 *
-	 * @param edgeId - The id of the edge (one probably habe more edges)
+	 * @param edgeId - The ID of the edge (one probably habe more edges)
 	 * @param source - The source node the edge is outgoing
 	 * @param target - The target node the edge aims to
+	 * @param distance - The edges distance
 	 */
 	public void addEdge (final int edgeId, final int source, final int target, final int distance) {
 		sources[edgeId] = source;
@@ -84,12 +72,177 @@ public class AdjacencyGraph implements Graph {
          the value of the offset[last observed node+1] is copied inductively into the offset value gap until offset[current node]
          is set to the calue of the last observed node
         */
-		while (cachedSourceNodeID < source) {
+		while (cachedSourceNodeID < source) {   // TODO There may be an more efficient realization
 			cachedSourceNodeID++;
 			offset[cachedSourceNodeID + 1] = offset[cachedSourceNodeID];
 		}
 		// Offset value of the next row increases
 		offset[source + 1]++;
+	}
+
+	/**
+	 * The method unites the calculation of the one to all and one to one dijkstra by making use of a vararg to allow multiple parameters.
+	 * The default with one parameter is one to all dijkstra.
+	 * This implementation uses the value -1 for nodes which were not inspected by the algorithm so far (=in WHITE),
+	 * OPEN nodes are set if the path form the current node is better than the already set one & CLOSED nodes are not
+	 * monitored due to the nature of the algorithm, that the distance can't get any better for them.
+	 *
+	 * @param nodeIds First node is the source node, second one is target. Second one can be neglected for on to all dijkstra exeecution
+	 * @return Optional.empty(), if the one to all is executed, else the path as linked list wrapped in Optional object
+	 *
+	 * @throws IllegalArgumentException {@code this.dijkstraDefensiveProgrammingChecks}
+	 */
+	public Optional<Queue<Integer>> dijkstra (final int... nodeIds) {
+		this.dijkstraDefensiveProgrammingChecks(nodeIds);
+
+		// Initialization of source node and target node & determination, if oneToOne should be executed
+		final int sourceNodeId = nodeIds[0];
+		final boolean oneToOneDijkstra = nodeIds.length == 2;
+		final int targetNodeId = (oneToOneDijkstra) ? nodeIds[1] : -1;
+
+		final int[] predecessorNodes = (oneToOneDijkstra) ? new int[this.longitudes.length] : null;
+
+		/*
+		This is where the fun beginns!
+		 */
+
+		// This one is by far a beauty, but 1-2 sec slower :(
+		// private final Comparator<DijkstraNode> dijkstraNodeComparator = Comparator.comparingInt(DijkstraNode::incrementalDistance);
+		final Comparator<DijkstraNode> dijkstraNodeComparator = (nodeOne, nodeTwo) -> {
+			if (nodeOne.incrementalDistance - nodeTwo.incrementalDistance > 0) {    // This is faster than Integer.compare()!
+				return 1;
+			} else if (nodeOne.incrementalDistance - nodeTwo.incrementalDistance < 0) {
+				return -1;
+			} else {
+				return 0;
+			}
+		};
+
+		// TODO: Implement a priority queue which works with primitive ints (?)
+		PriorityQueue<DijkstraNode> priorityQ = new PriorityQueue<>(73, dijkstraNodeComparator);
+		// The favourite number of Sheldon Cooper for the win of our programming project! (Testing says better than 42, 69, 127 & 420!)
+
+		// Initialization of whole array with -1 values was moved to constructor for performance reasons
+		this.dijkstraDistancesToSource[sourceNodeId] = 0;
+
+		// Setup for first loop iteration
+		priorityQ.add(new DijkstraNode(sourceNodeId, 0));
+
+		// Declaring variable for the current watched nodes and its adjacent nodes, obviously for performance reasons :|
+		DijkstraNode currentDijkstraNode;
+		int[] currentsAdjacentNodes;
+		int[] currentsAdjacentEdges;
+
+		while (!priorityQ.isEmpty()) {
+			currentDijkstraNode = priorityQ.poll();
+
+			if (oneToOneDijkstra && currentDijkstraNode.nodeId == targetNodeId)
+				return this.getPath(sourceNodeId, targetNodeId, predecessorNodes);
+
+			// Adjacent neighbour nodes & edges are saved as arrays of node and edge Ids
+			currentsAdjacentNodes = this.getOutgoingTargetNodes(currentDijkstraNode.nodeId);
+			currentsAdjacentEdges = this.getOutgoingEdgesIdsFrom(currentDijkstraNode.nodeId);
+
+			// Adding adjacent nodes of current (called N for Neighbour) greedily to priorityQ
+			for (int n = 0; n < currentsAdjacentNodes.length; n++) {
+				int nodeN = currentsAdjacentNodes[n];
+
+				final int oldDistanceToNodeN = this.dijkstraDistancesToSource[nodeN];
+				final int updatedDistanceToNodeN = currentDijkstraNode.incrementalDistance + distances[currentsAdjacentEdges[n]];
+
+				// If the current path to node N(eighbour) has a better distance than the previous one || node N is an open node =>
+				// (update||set its distance (&predecessor) in priorityQ & array)
+				if (oldDistanceToNodeN == -1 || updatedDistanceToNodeN < oldDistanceToNodeN) {
+					this.dijkstraDistancesToSource[nodeN] = updatedDistanceToNodeN;
+
+					if (oneToOneDijkstra) predecessorNodes[currentsAdjacentNodes[n]] = currentDijkstraNode.nodeId;
+
+					// This works due to overwritten equals method in the record which explodes if the parameter is something else than int
+					if (oldDistanceToNodeN != -1) priorityQ.remove(nodeN);
+
+					priorityQ.add(new DijkstraNode(nodeN, updatedDistanceToNodeN));
+				}
+			}
+		}
+		return Optional.empty();
+	}
+
+	/**
+	 * Performs defensive checks on vararg parameters & values of the provided node IDs
+	 *
+	 * @param nodeIds The node ID vararg to be verified
+	 * @throws IllegalArgumentException On check failure
+	 */
+	private void dijkstraDefensiveProgrammingChecks (final int... nodeIds) {
+		// Check for invalid amount of parameters
+		if (nodeIds.length == 0 || 2 < nodeIds.length)
+			throw new IllegalArgumentException("0 or more than 2 nodes are specified as arguments.");
+
+		// Check for right integer range for source node
+		if (nodeIds[0] < 0 || longitudes.length <= nodeIds[0])
+			throw new IllegalArgumentException("Source node is negative or greater than the maximal node ID.");
+
+		if (nodeIds.length == 2) {
+			// Check for oneToOne dijkstra & target node integer range
+			if (nodeIds[1] < 0 || longitudes.length <= nodeIds[1])
+				throw new IllegalArgumentException("Target node is negative or greater than the maximum node ID");
+
+			if (nodeIds[0] == nodeIds[1])
+				throw new IllegalArgumentException("Target node ID is the same as source node ID");
+		}
+	}
+
+	/**
+	 * Returns the outgoing node IDs of a node specified via source node ID alias the latitude/ longitudes corresponding index
+	 * Optimization > code style due to the amount of calls by {@code this.dijkstra} for determination of the current nodes surrounding nodes
+	 *
+	 * @param sourceNodeId - The nodes ID/ index of which the outgoing nodes are requested
+	 * @return - The outgoing nodes typed as int[]
+	 */
+	private int[] getOutgoingTargetNodes (final int sourceNodeId) {
+		return Arrays.copyOfRange(targets, offset[sourceNodeId], offset[sourceNodeId + 1]);
+	}
+
+	/**
+	 * Returns an Array of the indices of form source node outgoing edges.
+	 * Optimization > code style due to the amount of calls by {@code this.dijkstra} for determination of the surrounding nodes distances
+	 *
+	 * @param sourceNodeId the given source node
+	 * @return array with the indices of those edges which are outgoing edges from source node
+	 */
+	private int[] getOutgoingEdgesIdsFrom (final int sourceNodeId) {
+		// Initialize an array which holds the edges
+		final int[] edgeIndices = new int[offset[sourceNodeId + 1] - offset[sourceNodeId]];
+
+		// Adding the edge IDs which are saved in the offset array as difference between source node ID and source node ID + 1
+		for (int i = 0; i < edgeIndices.length; i++) {
+			edgeIndices[i] = offset[sourceNodeId] + i;
+		}
+		return edgeIndices;
+	}
+
+	/**
+	 * Returns the path from source to target by iteratively going through the predecessors array, starting from target node id.
+	 * Uses dequeue to push  the node ids to
+	 *
+	 * @param sourceNodeID The source node of the path
+	 * @param targetNodeID The target node of the path
+	 * @param predecessors The array in which for every node id of the path (represented as indices) has a predecessor
+	 * @return The path from source to target by using the integer node ids
+	 */
+	private Optional<Queue<Integer>> getPath (final int sourceNodeID, final int targetNodeID, final int[] predecessors) {
+		int pathIteratorBuffer = targetNodeID;
+		ArrayDeque<Integer> path = new ArrayDeque<>();
+
+		// Building the path by following it in the inverted direction and pushing it to the linked list path
+		while (pathIteratorBuffer != sourceNodeID) {
+			path.push(pathIteratorBuffer);
+			pathIteratorBuffer = predecessors[pathIteratorBuffer];
+
+		}
+		path.push(sourceNodeID);    // Adds the source node to the path
+
+		return Optional.of(path);
 	}
 
 	/**
@@ -121,156 +274,8 @@ public class AdjacencyGraph implements Graph {
 	public void printOutStructs (final PrintStream out) {
 		out.print(" Node ID/Index:\t| Latitude:\t| Longitude:\t| Offset: \t| Targets: \n");
 		for (int i = 0; i < this.longitudes.length; i++) {
-			// TODO Add distance value to outgoing nodes
 			out.printf("  %d\t\t|  %f\t|  %f\t| %d\t|  %s%n", i, latitudes[i], longitudes[i], offset[i], Arrays.toString(getOutgoingTargetNodes(i)));
 		}
-	}
-
-	/**
-	 * Returns the outgoing nodes of a node specified via node ID alias the latitude/ longitudes corresponding index
-	 *
-	 * @param node - The nodes ID/ index of which the outgoing nodes are requested
-	 * @return - The outgoing nodes typed as int[]
-	 */
-	private int[] getOutgoingTargetNodes (final int node) {
-		int startOutgoingNodeID = offset[node];
-		int exclusiveOutgoingNodeID = offset[node + 1];
-		return Arrays.copyOfRange(targets, startOutgoingNodeID, exclusiveOutgoingNodeID);
-	}
-
-	/**
-	 * Returns an Array of the indexes for the outgoing edges from sourceNode.
-	 *
-	 * @param sourceNode the given source node
-	 * @return array with the indexes of those edges which are outgoing edges from sourceNode
-	 */
-	private int[] getOutgoingEdgesOf (final int sourceNode) {
-		int startOutgoingNodeID = offset[sourceNode];
-		int exclusiveOutgoingNodeID = offset[sourceNode + 1];
-		int indexRange = exclusiveOutgoingNodeID - startOutgoingNodeID;
-
-		int[] indizes = new int[indexRange];
-
-		for (int i = 0; i < indexRange; i++) {
-			indizes[i] = startOutgoingNodeID + i;
-		}
-		return indizes;
-	}
-
-	/**
-	 * TODO
-	 * TODO Refactor
-	 *
-	 * @param nodeIds
-	 * @return
-	 */
-	public Optional<LinkedList<Integer>> dijkstra (final int... nodeIds) {
-		/*
-		 Initialization of source node and target node, offensive programming & determination, if oneToOne should be executed
-		 */
-		if (nodeIds.length == 0 || nodeIds.length > 2)
-			throw new IllegalArgumentException("0 or more than 2 nodes are specified as arguments.");
-
-		final int sourceNodeId = nodeIds[0];
-		if (sourceNodeId < 0 || longitudes.length <= sourceNodeId)
-			throw new IllegalArgumentException("Source node is negative or greater than the maximal node ID.");
-
-		final boolean oneToOneDijkstra = nodeIds.length == 2;
-		final int targetNodeId = (oneToOneDijkstra) ? nodeIds[1] : 0;
-
-		if (oneToOneDijkstra && targetNodeId < 0 || longitudes.length <= targetNodeId)
-			throw new IllegalArgumentException("Target node is negative or greater than the maximum node ID");
-
-		final int[] predecessorNodes = (oneToOneDijkstra) ? new int[this.longitudes.length] : null;
-		int currentsPredecessor = -1;   // TODO Maybe remove this
-
-
-		/*
-		This is where the fun beginns!
-		 */
-		// TODO: Implement a priority queue which works with primitive ints (?) :(
-		PriorityQueue<DijkstraNode> priorityQ = new PriorityQueue<>(73, this.dijkstraNodeComparator);
-		// The favourite number of Sheldon Cooper for the win of our programming project! (Testing says better than 42, 69, 127 & 420!)
-
-		// Initialization of whole array with -1 values was moved to constructor for performance reasons
-		this.distancesToNode[sourceNodeId] = 0;     // TODO Maybe move them (Array & Comparator) in again?
-
-		// Setup for first loop iteration
-		priorityQ.add(new DijkstraNode(sourceNodeId, 0));
-
-		// Declaring variable for the current watched nodes and its adjacent nodes, obviously for performance reasons :|
-		DijkstraNode currentDijkstraNode;
-		int[] currentsAdjacentNodes;
-		int[] currentsAdjacentEdges;
-
-		while (!priorityQ.isEmpty()) {
-			currentDijkstraNode = priorityQ.poll();
-
-			// TODO See second TODO
-			// Sets the value of current node in predecessorNodes array to the last closed nodes id & then sets the value of currentsPredecessor
-			// to its own ID for the next closed node
-			/*if (oneToOneDijkstra) {
-				predecessorNodes[currentDijkstraNode.nodeId] = currentsPredecessor;
-				currentsPredecessor = currentDijkstraNode.nodeId;
-			}*/
-
-			if (oneToOneDijkstra && currentDijkstraNode.nodeId == targetNodeId)
-				return this.getPath(sourceNodeId, targetNodeId, predecessorNodes);
-
-			// Nodes are saved as arrays of node and edge Ids
-			currentsAdjacentNodes = this.getOutgoingTargetNodes(currentDijkstraNode.nodeId);
-			currentsAdjacentEdges = this.getOutgoingEdgesOf(currentDijkstraNode.nodeId);
-
-			// Adding adjacent nodes of current (called N for Neighbour) to priorityQ
-			//for (int n = 0; n < currentsAdjacentNodes.length; n++) {  // We tried to do HotSpots work right here
-			int n = 0;
-			while (n < currentsAdjacentNodes.length) {
-				int nodeN = currentsAdjacentNodes[n]; // Neighbour node to the current node
-
-				final int oldDistanceToNodeN = this.distancesToNode[nodeN];
-				final int updatedDistanceToNodeN =
-						currentDijkstraNode.incrementalDistance + distances[currentsAdjacentEdges[n]];
-
-				// If the current path to node N(eighbour) has a better distance than the previous one || node N is an open node, update||set it in priorityQ & array
-				if (oldDistanceToNodeN == -1 || updatedDistanceToNodeN < oldDistanceToNodeN) {
-					this.distancesToNode[nodeN] = updatedDistanceToNodeN;
-
-					if (oldDistanceToNodeN != -1)
-						priorityQ.remove(nodeN);    // This works due to overwritten equals method in the record which explodes if the parameter is something else than int
-
-					// n++ is here due to the optimization stuff HotSpot should actually do D:
-					if (oneToOneDijkstra)
-						predecessorNodes[currentsAdjacentNodes[n++]] = currentDijkstraNode.nodeId;  // TODO This might be wrong, right?
-
-					priorityQ.add(new DijkstraNode(nodeN, updatedDistanceToNodeN));
-				}
-				n++;    // May HotSpot be with you!
-			}
-		}
-		return Optional.empty();
-	}
-
-	/**
-	 * TODO
-	 *
-	 * @param sourceNodeID
-	 * @param targetNodeID
-	 * @param predecessors
-	 * @return
-	 */
-	private Optional<LinkedList<Integer>> getPath (int sourceNodeID, int targetNodeID, int[] predecessors) {
-		int pathIteratorBuffer = targetNodeID;
-		LinkedList<Integer> path = new LinkedList<>();  // TODO Find more efficient type for this
-
-		// Building the path by following it in the inverted direction and pushing it to the linked list path
-		while (pathIteratorBuffer != sourceNodeID) {
-			path.push(pathIteratorBuffer);
-			pathIteratorBuffer = predecessors[pathIteratorBuffer];
-
-		}
-		path.push(sourceNodeID);    // Adds the source node to the path
-
-		return Optional.of(path);
 	}
 
 
