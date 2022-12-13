@@ -1,8 +1,9 @@
-
 import loader.GraphReader;
 import struct.AdjacencyGraph;
-import struct.ClosestNodeDataStructure;
+import struct.DijkstraRun;
+import struct.SortedAdjacencyGraph;
 
+import javax.naming.OperationNotSupportedException;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -30,13 +31,13 @@ public class Benchmark {
 
 		System.out.println("Setting up closest node data structure...");
 		// TODO: set up closest node data structure here
-		ClosestNodeDataStructure closestNodeDataStructure = new ClosestNodeDataStructure(adjacencyGraph);
+		SortedAdjacencyGraph sortedAdjacencyGraph = new SortedAdjacencyGraph(adjacencyGraph);
 
 		System.out.println("Finding closest node to coordinates " + lon + " " + lat);
 		long nodeFindStart = System.currentTimeMillis();
 		double[] coords = {0.0, 0.0};
 		// TODO: find closest node here and write coordinates into coords
-		ClosestNodeDataStructure.Node closestNode = closestNodeDataStructure.getClosestNode(lon, lat);
+		SortedAdjacencyGraph.Node closestNode = sortedAdjacencyGraph.getClosestNode(lon, lat);
 		coords[0] = closestNode.longitude();
 		coords[1] = closestNode.latitude();
 		long nodeFindEnd = System.currentTimeMillis();
@@ -53,8 +54,8 @@ public class Benchmark {
 				// TODO set oneToOneDistance to the distance from
 				// oneToOneSourceNodeId to oneToOneSourceNodeId as computed by
 				// the one-to-one Dijkstra
-				ArrayDeque<Integer> path = adjacencyGraph.dijkstra(oneToOneSourceNodeId, oneToOneTargetNodeId).get();
-				oneToOneDistance = adjacencyGraph.getDistanceFromPath(path);
+				DijkstraRun dijkstraRunToOne = adjacencyGraph.dijkstra(oneToOneSourceNodeId, oneToOneTargetNodeId);
+				oneToOneDistance = dijkstraRunToOne.getDistanceFromPath();
 				System.out.println(oneToOneDistance);
 			}
 		} catch (Exception e) {
@@ -67,7 +68,7 @@ public class Benchmark {
 		System.out.println("Computing one-to-all Dijkstra from node id " + sourceNodeId);
 		long oneToAllStart = System.currentTimeMillis();
 		// TODO: run one-to-all Dijkstra here
-		adjacencyGraph.dijkstra(sourceNodeId);
+		DijkstraRun dijkstraRunToAll = adjacencyGraph.dijkstra(sourceNodeId);
 		long oneToAllEnd = System.currentTimeMillis();
 		System.out.println("\tone-to-all Dijkstra took " + (oneToAllEnd - oneToAllStart) + "ms");
 
@@ -77,6 +78,14 @@ public class Benchmark {
 		int oneToAllDistance = -42;
 		// TODO set oneToAllDistance to the distance from sourceNodeId to
 		// targetNodeId as computed by the one-to-all Dijkstra
+		ArrayDeque<Integer> pathToInput = new ArrayDeque<>();
+		try {
+			pathToInput = dijkstraRunToAll.getPathTo(targetNodeId);
+		} catch (OperationNotSupportedException e) {
+			System.err.println("Something clearly seems to be wrong with your entered node ID. :)");
+			e.printStackTrace();
+		}
+		oneToAllDistance = dijkstraRunToAll.getDistanceFromPath(pathToInput);
 		System.out.println("Distance from " + sourceNodeId + " to " + targetNodeId + " is " + oneToAllDistance);
 	}
 

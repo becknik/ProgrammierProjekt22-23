@@ -355,8 +355,8 @@ public class QuadTree implements Graph {
 		this.adjacencyGraph = adjacencyGraph;
 		this.root = new LeafNode();
 
-		for (int nodeId = 0; nodeId < adjacencyGraph.longitudes.length; nodeId++) {
-			this.addNode(nodeId, adjacencyGraph.longitudes[nodeId], adjacencyGraph.latitudes[nodeId]);
+		for (int nodeId = 0; nodeId < adjacencyGraph.getNodeCount(); nodeId++) {
+			this.addNode(nodeId, adjacencyGraph.getLongitudeOf(nodeId), adjacencyGraph.getLatitudeOf(nodeId));
 		}
 	}
 

@@ -1,7 +1,10 @@
 package struct;
 
 import java.io.PrintStream;
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.PriorityQueue;
 import java.util.logging.Logger;
 
 public class AdjacencyGraph implements Graph {
@@ -9,17 +12,27 @@ public class AdjacencyGraph implements Graph {
 	public static boolean enableLogging;
 
 	// Node stuff, referenced by node indices
-	final double[] longitudes; // Not private due to QuadTree using it directly :/
-	final double[] latitudes;
+	private final double[] longitudes; // Not private due to QuadTree using it directly :/
+	private final double[] latitudes;
 
 	// Edge stuff, referenced by edge indices
 	private final int[] sources;
 	private final int[] targets;
 	private final int[] offset;
 	private final int[] distances;
-	private final int[] dijkstraDistancesToSource; // Moved over here to waste as less time as possible in dijkstra :/
-	// Stuff to be written by add & dijkstra operations:
+	// Stuff to be written by add operation:
 	private int cachedSourceNodeID;
+
+	// I now understand why they call java dynamically & bad playing with arrays.
+	// Using int Arrays instead of this increases runtime from 8 -> 21 sec. Factor 2.5!
+	private record DijkstraNode(int nodeId, int incrementalDistance) {
+		@Override
+		public boolean equals (Object obj) {
+			assert obj.getClass() == Integer.class;
+
+			return ((int) obj) == this.nodeId;      // This one came straight out of hell.
+		}
+	}
 
 	public AdjacencyGraph (int nodeCount, int edgeCount) {
 		assert nodeCount > 0 && edgeCount > 0;
@@ -31,10 +44,6 @@ public class AdjacencyGraph implements Graph {
 		this.sources = new int[edgeCount];
 		this.targets = new int[edgeCount];
 		this.distances = new int[edgeCount];
-
-		// Moved from dijkstra method - oneToAll
-		this.dijkstraDistancesToSource = new int[this.longitudes.length];
-		Arrays.fill(this.dijkstraDistancesToSource, -1);
 	}
 
 	/**
@@ -96,7 +105,7 @@ public class AdjacencyGraph implements Graph {
 	 *
 	 * @throws IllegalArgumentException {@code this.dijkstraDefensiveProgrammingChecks}
 	 */
-	public Optional<ArrayDeque<Integer>> dijkstra (final int... nodeIds) {
+	public DijkstraRun dijkstra (final int... nodeIds) {
 		this.dijkstraDefensiveProgrammingChecks(nodeIds);
 
 		// Initialization of source node and target node & determination, if oneToOne should be executed
@@ -104,7 +113,7 @@ public class AdjacencyGraph implements Graph {
 		final boolean oneToOneDijkstra = nodeIds.length == 2;
 		final int targetNodeId = (oneToOneDijkstra) ? nodeIds[1] : -1;
 
-		final int[] predecessorEdges = (oneToOneDijkstra) ? new int[this.longitudes.length] : null;
+		final int[] predecessorEdges = new int[this.longitudes.length];
 
 		/*
 		This is where the fun beginns!
@@ -126,8 +135,11 @@ public class AdjacencyGraph implements Graph {
 		PriorityQueue<DijkstraNode> priorityQ = new PriorityQueue<>(73, dijkstraNodeComparator);
 		// The favourite number of Sheldon Cooper for the win of our programming project! (Testing says better than 42, 69, 127 & 420!)
 
-		// Initialization of whole array with -1 values was moved to constructor for performance reasons
-		this.dijkstraDistancesToSource[sourceNodeId] = 0;
+		// Must be initialized here to allow multiple runs of this method
+		// Initializes all nodes as WHITE with distance -1, start node gets the distance 0
+		final int[] dijkstraDistancesToSource = new int[this.longitudes.length];
+		Arrays.fill(dijkstraDistancesToSource, -1);
+		dijkstraDistancesToSource[sourceNodeId] = 0;
 
 		// Setup for first loop iteration
 		priorityQ.add(new DijkstraNode(sourceNodeId, 0));
@@ -140,8 +152,10 @@ public class AdjacencyGraph implements Graph {
 		while (!priorityQ.isEmpty()) {
 			currentDijkstraNode = priorityQ.poll();
 
-			if (oneToOneDijkstra && currentDijkstraNode.nodeId == targetNodeId)
-				return Optional.of(this.getPath(sourceNodeId, targetNodeId, predecessorEdges));
+			if (oneToOneDijkstra && currentDijkstraNode.nodeId == targetNodeId) {
+				ArrayDeque<Integer> path = this.getPath(sourceNodeId, targetNodeId, predecessorEdges);
+				return new DijkstraRun(this, predecessorEdges, path);
+			}
 
 			// Adjacent neighbour nodes & edges are saved as arrays of node and edge Ids
 			currentsAdjacentNodes = this.getAdjacentNodeIdsFrom(currentDijkstraNode.nodeId);
@@ -151,15 +165,15 @@ public class AdjacencyGraph implements Graph {
 			for (int n = 0; n < currentsAdjacentNodes.length; n++) {
 				int nodeN = currentsAdjacentNodes[n];
 
-				final int oldDistanceToNodeN = this.dijkstraDistancesToSource[nodeN];
+				final int oldDistanceToNodeN = dijkstraDistancesToSource[nodeN];
 				final int updatedDistanceToNodeN = currentDijkstraNode.incrementalDistance + distances[currentsAdjacentEdges[n]];
 
 				// If the current path to node N(eighbour) has a better distance than the previous one || node N is an open node =>
 				// (update||set its distance (&predecessor) in priorityQ & array)
 				if (oldDistanceToNodeN == -1 || updatedDistanceToNodeN < oldDistanceToNodeN) {
-					this.dijkstraDistancesToSource[nodeN] = updatedDistanceToNodeN;
+					dijkstraDistancesToSource[nodeN] = updatedDistanceToNodeN;
 
-					if (oneToOneDijkstra) predecessorEdges[nodeN] = currentsAdjacentEdges[n];
+					predecessorEdges[nodeN] = currentsAdjacentEdges[n];
 
 					// This works due to overwritten equals method in the record which explodes if the parameter is something else than int
 					if (oldDistanceToNodeN != -1) priorityQ.remove(nodeN);
@@ -168,7 +182,7 @@ public class AdjacencyGraph implements Graph {
 				}
 			}
 		}
-		return Optional.empty();
+		return new DijkstraRun(this, predecessorEdges, sourceNodeId);
 	}
 
 	/**
@@ -234,9 +248,8 @@ public class AdjacencyGraph implements Graph {
 	 * @param predecessorEdgeIds Contains edge connected with the predecessor node for every node ID (represented as indices)
 	 * @return The path as edge IDs from source to target
 	 */
-	private ArrayDeque<Integer> getPath (final int sourceNodeId, final int targetNodeId, final int[] predecessorEdgeIds) {
-		assert predecessorEdgeIds != null;
-		assert sourceNodeId != targetNodeId;
+	ArrayDeque<Integer> getPath (final int sourceNodeId, final int targetNodeId, final int[] predecessorEdgeIds) {
+		// Defensive programming: done in this.dijkstra and DijkstraRuns getDistanceTo methods
 
 		int currentEdgeId = predecessorEdgeIds[targetNodeId];
 		ArrayDeque<Integer> path = new ArrayDeque<>();
@@ -253,19 +266,6 @@ public class AdjacencyGraph implements Graph {
 		return path;
 	}
 
-	public int getDistanceFromPath (final Queue<Integer> path) {
-		if (path == null) throw new IllegalArgumentException("Provided path is null.");
-
-		int distance = 0;
-		for (Integer edgeId : path) {
-			// TODO assert this?
-			if (edgeId == 0 || this.distances.length <= edgeId)
-				throw new IllegalArgumentException("The path contains invalid edge IDs");
-
-			distance += this.distances[edgeId];
-		}
-		return distance;
-	}
 
 	/**
 	 * Returns the lowest latitude & longitude, used by the {@code QuadTree} class to determine the placement of the greatest "tile"
@@ -304,22 +304,19 @@ public class AdjacencyGraph implements Graph {
 		return this.longitudes.length;
 	}
 
-	double getLongitudeOf (int index) {
-		return longitudes[index];
+	int getEdgeCount () {
+		return this.distances.length;
 	}
 
-	double getLatitudeOf (int index) {
-		return latitudes[index];
+	double getLongitudeOf (int nodeId) {
+		return longitudes[nodeId];
 	}
 
-	// I now understand why they call java dynamically & bad playing with arrays.
-	// Using int Arrays instead of this increases runtime from 8 -> 21 sec. Factor 2.5!
-	private record DijkstraNode(int nodeId, int incrementalDistance) {
-		@Override
-		public boolean equals (Object obj) {
-			assert obj.getClass() == Integer.class;
+	double getLatitudeOf (final int nodeId) {
+		return latitudes[nodeId];
+	}
 
-			return ((int) obj) == this.nodeId;      // This one came straight out of hell.
-		}
+	public int getDistanceOf (final int nodeId) {
+		return distances[nodeId];
 	}
 }
