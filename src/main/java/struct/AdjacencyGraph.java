@@ -13,6 +13,7 @@ public class AdjacencyGraph implements Graph {
 	final double[] latitudes;
 
 	// Edge stuff, referenced by edge indices
+	private final int[] sources;
 	private final int[] targets;
 	private final int[] offset;
 	private final int[] distances;
@@ -23,12 +24,13 @@ public class AdjacencyGraph implements Graph {
 	public AdjacencyGraph (int nodeCount, int edgeCount) {
 		assert nodeCount > 0 && edgeCount > 0;
 
-		longitudes = new double[nodeCount];
-		latitudes = new double[nodeCount];
-		offset = new int[nodeCount + 1];  // Gotcha!
+		this.longitudes = new double[nodeCount];
+		this.latitudes = new double[nodeCount];
+		this.offset = new int[nodeCount + 1];  // Gotcha!
 
-		targets = new int[edgeCount];
-		distances = new int[edgeCount];
+		this.sources = new int[edgeCount];
+		this.targets = new int[edgeCount];
+		this.distances = new int[edgeCount];
 
 		// Moved from dijkstra method - oneToAll
 		this.dijkstraDistancesToSource = new int[this.longitudes.length];
@@ -66,6 +68,7 @@ public class AdjacencyGraph implements Graph {
 		else if (this.longitudes.length <= sourceId || this.longitudes.length <= targetId)
 			throw new IllegalArgumentException("Node ID for edge is higher than the overall node count.");
 
+		sources[edgeId] = sourceId;
 		targets[edgeId] = targetId;
 		distances[edgeId] = distance;
 
@@ -88,12 +91,12 @@ public class AdjacencyGraph implements Graph {
 	 * OPEN nodes are set if the path form the current node is better than the already set one & CLOSED nodes are not
 	 * monitored due to the nature of the algorithm, that the distance can't get any better for them.
 	 *
-	 * @param nodeIds First node is the source node, second one is target. Second one can be neglected for on to all dijkstra exeecution
-	 * @return Optional.empty(), if the one to all is executed, else the path as linked list wrapped in Optional object
+	 * @param nodeIds First node is the source node, second one is target. Second one can be neglected for on to all dijkstra execution
+	 * @return Optional.empty(), if the one to all is executed, else the path of edge IDs as linked list wrapped in Optional object
 	 *
 	 * @throws IllegalArgumentException {@code this.dijkstraDefensiveProgrammingChecks}
 	 */
-	public Optional<Queue<Integer>> dijkstra (final int... nodeIds) {
+	public Optional<ArrayDeque<Integer>> dijkstra (final int... nodeIds) {
 		this.dijkstraDefensiveProgrammingChecks(nodeIds);
 
 		// Initialization of source node and target node & determination, if oneToOne should be executed
@@ -101,7 +104,7 @@ public class AdjacencyGraph implements Graph {
 		final boolean oneToOneDijkstra = nodeIds.length == 2;
 		final int targetNodeId = (oneToOneDijkstra) ? nodeIds[1] : -1;
 
-		final int[] predecessorNodes = (oneToOneDijkstra) ? new int[this.longitudes.length] : null;
+		final int[] predecessorEdges = (oneToOneDijkstra) ? new int[this.longitudes.length] : null;
 
 		/*
 		This is where the fun beginns!
@@ -138,7 +141,7 @@ public class AdjacencyGraph implements Graph {
 			currentDijkstraNode = priorityQ.poll();
 
 			if (oneToOneDijkstra && currentDijkstraNode.nodeId == targetNodeId)
-				return this.getPath(sourceNodeId, targetNodeId, predecessorNodes);
+				return Optional.of(this.getPath(sourceNodeId, targetNodeId, predecessorEdges));
 
 			// Adjacent neighbour nodes & edges are saved as arrays of node and edge Ids
 			currentsAdjacentNodes = this.getAdjacentNodeIdsFrom(currentDijkstraNode.nodeId);
@@ -156,7 +159,7 @@ public class AdjacencyGraph implements Graph {
 				if (oldDistanceToNodeN == -1 || updatedDistanceToNodeN < oldDistanceToNodeN) {
 					this.dijkstraDistancesToSource[nodeN] = updatedDistanceToNodeN;
 
-					if (oneToOneDijkstra) predecessorNodes[currentsAdjacentNodes[n]] = currentDijkstraNode.nodeId;
+					if (oneToOneDijkstra) predecessorEdges[nodeN] = currentsAdjacentEdges[n];
 
 					// This works due to overwritten equals method in the record which explodes if the parameter is something else than int
 					if (oldDistanceToNodeN != -1) priorityQ.remove(nodeN);
@@ -223,30 +226,45 @@ public class AdjacencyGraph implements Graph {
 	}
 
 	/**
-	 * Returns the path from source to target by iteratively going through the predecessors array, starting from target node id.
-	 * Uses dequeue to push  the node ids to
+	 * Returns the path (edge IDs) from source to target by iteratively going through the predecessorEdgeIds array, starting from target node IDs.
+	 * Uses dequeue to push the edge IDs into the right order
 	 *
-	 * @param sourceNodeID The source node of the path
-	 * @param targetNodeID The target node of the path
-	 * @param predecessors The array in which for every node id of the path (represented as indices) has a predecessor
-	 * @return The path from source to target by using the integer node ids
+	 * @param sourceNodeId       The source node of the path
+	 * @param targetNodeId       The target node of the path
+	 * @param predecessorEdgeIds Contains edge connected with the predecessor node for every node ID (represented as indices)
+	 * @return The path as edge IDs from source to target
 	 */
-	private Optional<Queue<Integer>> getPath (final int sourceNodeID, final int targetNodeID, final int[] predecessors) {
-		assert predecessors != null;
-		assert sourceNodeID != targetNodeID;
+	private ArrayDeque<Integer> getPath (final int sourceNodeId, final int targetNodeId, final int[] predecessorEdgeIds) {
+		assert predecessorEdgeIds != null;
+		assert sourceNodeId != targetNodeId;
 
-		int pathIteratorBuffer = targetNodeID;
+		int currentEdgeId = predecessorEdgeIds[targetNodeId];
 		ArrayDeque<Integer> path = new ArrayDeque<>();
 
 		// Building the path by following it in the inverted direction and pushing it to the linked list path
-		while (pathIteratorBuffer != sourceNodeID) {
-			path.push(pathIteratorBuffer);
-			pathIteratorBuffer = predecessors[pathIteratorBuffer];
+		for (int currentEdgesSourceNode = this.sources[currentEdgeId]; currentEdgesSourceNode != sourceNodeId;
+		     currentEdgesSourceNode = this.sources[currentEdgeId]) {
+			path.push(currentEdgeId);
 
+			currentEdgeId = predecessorEdgeIds[currentEdgesSourceNode];
 		}
-		path.push(sourceNodeID);    // Adds the source node to the path
+		path.push(sourceNodeId);    // Adds the source node to the path
 
-		return Optional.of(path);
+		return path;
+	}
+
+	public int getDistanceFromPath (final Queue<Integer> path) {
+		if (path == null) throw new IllegalArgumentException("Provided path is null.");
+
+		int distance = 0;
+		for (Integer edgeId : path) {
+			// TODO assert this?
+			if (edgeId == 0 || this.distances.length <= edgeId)
+				throw new IllegalArgumentException("The path contains invalid edge IDs");
+
+			distance += this.distances[edgeId];
+		}
+		return distance;
 	}
 
 	/**
