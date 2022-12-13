@@ -16,21 +16,13 @@ public class AdjacencyGraph implements Graph {
 	private final int[] targets;
 	private final int[] offset;
 	private final int[] distances;
-
+	private final int[] dijkstraDistancesToSource; // Moved over here to waste as less time as possible in dijkstra :/
 	// Stuff to be written by add & dijkstra operations:
 	private int cachedSourceNodeID;
-	private final int[] dijkstraDistancesToSource; // Moved over here to waste as less time as possible in dijkstra :/
-
-	// I now understand why they call java dynamically & bad playing with arrays.
-	// Using int Arrays instead of this increases runtime from 8 -> 21 sec. Factor 2.5!
-	record DijkstraNode(int nodeId, int incrementalDistance) {
-		@Override
-		public boolean equals (Object obj) {    // TODO Maybe add type checks if efficient?
-			return ((int) obj) == this.nodeId;      // This one came straight out of hell.
-		}
-	}
 
 	public AdjacencyGraph (int nodeCount, int edgeCount) {
+		assert nodeCount > 0 && edgeCount > 0;
+
 		longitudes = new double[nodeCount];
 		latitudes = new double[nodeCount];
 		offset = new int[nodeCount + 1];  // Gotcha!
@@ -51,32 +43,42 @@ public class AdjacencyGraph implements Graph {
 	 * @param latitude  Corresponding latitude
 	 */
 	public void addNode (final int nodeId, final double longitude, final double latitude) {
+		if (nodeId < 0) throw new IllegalArgumentException("Provided node ID is < 0.");
+		else if (this.longitudes.length <= nodeId)
+			throw new IllegalArgumentException("Provided nodes ID is higher than the count of nodes.");
+
 		longitudes[nodeId] = longitude;
 		latitudes[nodeId] = latitude;
 	}
 
 	/**
-	 * Adds an edge to the source & target array, using the source & target node and the corresponding distance
+	 * Adds an edge to the sourceId & target ID array, using the sourceId & target ID node and the corresponding distance
 	 *
-	 * @param edgeId - The ID of the edge (one probably habe more edges)
-	 * @param source - The source node the edge is outgoing
-	 * @param target - The target node the edge aims to
+	 * @param edgeId   - The ID of the edge (one probably habe more edges)
+	 * @param sourceId - The sourceId node the edge is outgoing
+	 * @param targetId - The targetId node the edge aims to
 	 * @param distance - The edges distance
 	 */
-	public void addEdge (final int edgeId, final int source, final int target, final int distance) {
-		targets[edgeId] = target;
+	public void addEdge (final int edgeId, final int sourceId, final int targetId, final int distance) {
+		if (edgeId < 0) throw new IllegalArgumentException("Provided edge ID is < 0.");
+		else if (this.longitudes.length <= edgeId)
+			throw new IllegalArgumentException("Provided edge ID is higher than the count of edges.");
+		else if (this.longitudes.length <= sourceId || this.longitudes.length <= targetId)
+			throw new IllegalArgumentException("Node ID for edge is higher than the overall node count.");
+
+		targets[edgeId] = targetId;
 		distances[edgeId] = distance;
 
         /* When there is a sequence of nodes without outgoing edges in between the last observed node and the current,
          the value of the offset[last observed node+1] is copied inductively into the offset value gap until offset[current node]
-         is set to the calue of the last observed node
+         is set to the value of the last observed node
         */
-		while (cachedSourceNodeID < source) {   // TODO There may be an more efficient realization
+		while (cachedSourceNodeID < sourceId) {   // TODO There may be an more efficient realization
 			cachedSourceNodeID++;
 			offset[cachedSourceNodeID + 1] = offset[cachedSourceNodeID];
 		}
 		// Offset value of the next row increases
-		offset[source + 1]++;
+		offset[sourceId + 1]++;
 	}
 
 	/**
@@ -230,6 +232,9 @@ public class AdjacencyGraph implements Graph {
 	 * @return The path from source to target by using the integer node ids
 	 */
 	private Optional<Queue<Integer>> getPath (final int sourceNodeID, final int targetNodeID, final int[] predecessors) {
+		assert predecessors != null;
+		assert sourceNodeID != targetNodeID;
+
 		int pathIteratorBuffer = targetNodeID;
 		ArrayDeque<Integer> path = new ArrayDeque<>();
 
@@ -249,7 +254,7 @@ public class AdjacencyGraph implements Graph {
 	 *
 	 * @return - A quadrupel (longitude highest, latitude, Longitude lowest, latitude)
 	 */
-	public double[] getOutestCoordinates () {
+	double[] getOutestCoordinates () {
 		double highestLatitude = 0d, lowestLatitude = 0d, highestLongitude = 0d, lowestLongitude = 0d;
 
 		// Saving the highest & lowest longitude & latitude from the arrays into the initialized variables
@@ -277,16 +282,26 @@ public class AdjacencyGraph implements Graph {
 		}
 	}
 
-
-	public int getNodeCount () {
+	int getNodeCount () {
 		return this.longitudes.length;
 	}
 
-	public double getLongitudeOf (int index) {
+	double getLongitudeOf (int index) {
 		return longitudes[index];
 	}
 
-	public double getLatitudeOf (int index) {
+	double getLatitudeOf (int index) {
 		return latitudes[index];
+	}
+
+	// I now understand why they call java dynamically & bad playing with arrays.
+	// Using int Arrays instead of this increases runtime from 8 -> 21 sec. Factor 2.5!
+	private record DijkstraNode(int nodeId, int incrementalDistance) {
+		@Override
+		public boolean equals (Object obj) {
+			assert obj.getClass() == Integer.class;
+
+			return ((int) obj) == this.nodeId;      // This one came straight out of hell.
+		}
 	}
 }
