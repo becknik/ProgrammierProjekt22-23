@@ -2,7 +2,7 @@ package struct;
 
 import java.util.Arrays;
 
-public class ClosestNodeDataStructure {
+public class SortedAdjacencyGraph {
 
 	public record Node(double longitude, double latitude, int nodeId) implements Comparable {
 		@Override
@@ -40,7 +40,7 @@ public class ClosestNodeDataStructure {
 
 	private final Node[] sortedAdjacencyGraph;
 
-	public ClosestNodeDataStructure (AdjacencyGraph adjacencyGraph) {
+	public SortedAdjacencyGraph (AdjacencyGraph adjacencyGraph) {
 
 		this.sortedAdjacencyGraph = new Node[adjacencyGraph.getNodeCount()];
 		for (int i = 0; i < adjacencyGraph.getNodeCount(); i++) {
