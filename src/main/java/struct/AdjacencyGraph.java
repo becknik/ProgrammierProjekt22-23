@@ -13,7 +13,6 @@ public class AdjacencyGraph implements Graph {
 	final double[] latitudes;
 
 	// Edge stuff, referenced by edge indices
-	private final int[] sources;    // TODO Maybe delete this?
 	private final int[] targets;
 	private final int[] offset;
 	private final int[] distances;
@@ -22,6 +21,8 @@ public class AdjacencyGraph implements Graph {
 	private int cachedSourceNodeID;
 	private final int[] dijkstraDistancesToSource; // Moved over here to waste as less time as possible in dijkstra :/
 
+	// I now understand why they call java dynamically & bad playing with arrays.
+	// Using int Arrays instead of this increases runtime from 8 -> 21 sec. Factor 2.5!
 	record DijkstraNode(int nodeId, int incrementalDistance) {
 		@Override
 		public boolean equals (Object obj) {    // TODO Maybe add type checks if efficient?
@@ -34,7 +35,6 @@ public class AdjacencyGraph implements Graph {
 		latitudes = new double[nodeCount];
 		offset = new int[nodeCount + 1];  // Gotcha!
 
-		sources = new int[edgeCount];
 		targets = new int[edgeCount];
 		distances = new int[edgeCount];
 
@@ -64,7 +64,6 @@ public class AdjacencyGraph implements Graph {
 	 * @param distance - The edges distance
 	 */
 	public void addEdge (final int edgeId, final int source, final int target, final int distance) {
-		sources[edgeId] = source;
 		targets[edgeId] = target;
 		distances[edgeId] = distance;
 
@@ -140,8 +139,8 @@ public class AdjacencyGraph implements Graph {
 				return this.getPath(sourceNodeId, targetNodeId, predecessorNodes);
 
 			// Adjacent neighbour nodes & edges are saved as arrays of node and edge Ids
-			currentsAdjacentNodes = this.getOutgoingTargetNodes(currentDijkstraNode.nodeId);
-			currentsAdjacentEdges = this.getOutgoingEdgesIdsFrom(currentDijkstraNode.nodeId);
+			currentsAdjacentNodes = this.getAdjacentNodeIdsFrom(currentDijkstraNode.nodeId);
+			currentsAdjacentEdges = this.getAdjacentEdgesIdsFrom(currentDijkstraNode.nodeId);
 
 			// Adding adjacent nodes of current (called N for Neighbour) greedily to priorityQ
 			for (int n = 0; n < currentsAdjacentNodes.length; n++) {
@@ -199,7 +198,7 @@ public class AdjacencyGraph implements Graph {
 	 * @param sourceNodeId - The nodes ID/ index of which the outgoing nodes are requested
 	 * @return - The outgoing nodes typed as int[]
 	 */
-	private int[] getOutgoingTargetNodes (final int sourceNodeId) {
+	private int[] getAdjacentNodeIdsFrom (final int sourceNodeId) {
 		return Arrays.copyOfRange(targets, offset[sourceNodeId], offset[sourceNodeId + 1]);
 	}
 
@@ -210,7 +209,7 @@ public class AdjacencyGraph implements Graph {
 	 * @param sourceNodeId the given source node
 	 * @return array with the indices of those edges which are outgoing edges from source node
 	 */
-	private int[] getOutgoingEdgesIdsFrom (final int sourceNodeId) {
+	private int[] getAdjacentEdgesIdsFrom (final int sourceNodeId) {
 		// Initialize an array which holds the edges
 		final int[] edgeIndices = new int[offset[sourceNodeId + 1] - offset[sourceNodeId]];
 
@@ -274,7 +273,7 @@ public class AdjacencyGraph implements Graph {
 	public void printOutStructs (final PrintStream out) {
 		out.print(" Node ID/Index:\t| Latitude:\t| Longitude:\t| Offset: \t| Targets: \n");
 		for (int i = 0; i < this.longitudes.length; i++) {
-			out.printf("  %d\t\t|  %f\t|  %f\t| %d\t|  %s%n", i, latitudes[i], longitudes[i], offset[i], Arrays.toString(getOutgoingTargetNodes(i)));
+			out.printf("  %d\t\t|  %f\t|  %f\t| %d\t|  %s%n", i, latitudes[i], longitudes[i], offset[i], Arrays.toString(getAdjacentNodeIdsFrom(i)));
 		}
 	}
 
