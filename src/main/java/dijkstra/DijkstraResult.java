@@ -48,6 +48,7 @@ public class DijkstraResult {
 
 	/**
 	 * OneToOne Constructor
+	 *
 	 * @param adjacencyGraph
 	 * @param predecessorEdgeIds
 	 * @param path
@@ -64,6 +65,7 @@ public class DijkstraResult {
 
 	/**
 	 * OneToAll Constructor
+	 *
 	 * @param adjacencyGraph
 	 * @param predecessorEdgeIds
 	 * @param sourceNodeId
@@ -89,8 +91,8 @@ public class DijkstraResult {
 	}
 
 	/**
-	 *
 	 * @return
+	 *
 	 * @throws OperationNotSupportedException
 	 */
 	public int getDistanceFromPath () throws OperationNotSupportedException {

@@ -23,7 +23,6 @@ public class SortedAdjacencyGraph {
 
 		@Override
 		public int compareTo (Object o) {
-
 			if (o instanceof Node node) {
 				if (this.latitude - node.latitude < 0) {
 					return -1;
@@ -32,7 +31,6 @@ public class SortedAdjacencyGraph {
 				} else {
 					return 0;
 				}
-
 			} else {
 				throw new IllegalArgumentException("Compare to only for instances of Node!");
 			}

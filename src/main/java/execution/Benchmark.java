@@ -1,9 +1,9 @@
 package execution;
 
 import dijkstra.DijkstraAlgorithm;
+import dijkstra.DijkstraResult;
 import loader.GraphReader;
 import struct.AdjacencyGraph;
-import dijkstra.DijkstraResult;
 import struct.SortedAdjacencyGraph;
 
 import javax.naming.OperationNotSupportedException;
