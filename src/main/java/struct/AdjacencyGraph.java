@@ -20,7 +20,7 @@ public class AdjacencyGraph implements Graph {
 	private final double[] latitudes;
 
 	// Edge stuff, referenced by edge indices
-	private final int[] sources;
+	public final int[] sources;
 	private final int[] targets;
 	private final int[] offset;
 	private final int[] distances;
@@ -102,7 +102,7 @@ public class AdjacencyGraph implements Graph {
 	 * @return - The outgoing nodes typed as int[]
 	 */
 	public int[] getAdjacentNodeIdsFrom (final int sourceNodeId) {
-		return Arrays.copyOfRange(targets, offset[sourceNodeId], offset[sourceNodeId + 1]);
+		return Arrays.copyOfRange(targets, offset[sourceNodeId], offset[sourceNodeId + 1] - 1);
 	}
 
 	/**
@@ -114,7 +114,7 @@ public class AdjacencyGraph implements Graph {
 	 */
 	public int[] getAdjacentEdgesIdsFrom (final int sourceNodeId) {
 		// Initialize an array which holds the edges
-		final int[] edgeIndices = new int[offset[sourceNodeId + 1] - offset[sourceNodeId]];
+		final int[] edgeIndices = new int[offset[sourceNodeId + 1] - offset[sourceNodeId] - 1];
 
 		// Adding the edge IDs which are saved in the offset array as difference between source node ID and source node ID + 1
 		for (int i = 0; i < edgeIndices.length; i++) {
@@ -139,14 +139,13 @@ public class AdjacencyGraph implements Graph {
 		ArrayDeque<Integer> path = new ArrayDeque<>();
 
 		// Building the path by following it in the inverted direction and pushing it to the linked list path
-		for (int currentEdgesSourceNode = this.sources[currentEdgeId]; currentEdgesSourceNode != sourceNodeId;
-		     currentEdgesSourceNode = this.sources[currentEdgeId]) {
+		int currentEdgesSourceNode = this.sources[currentEdgeId];
+		while (currentEdgesSourceNode != sourceNodeId) {
 			path.push(currentEdgeId);
 
 			currentEdgeId = predecessorEdgeIds[currentEdgesSourceNode];
+			currentEdgesSourceNode = this.sources[currentEdgeId];
 		}
-		path.push(sourceNodeId);    // Adds the source node to the path
-
 		return path;
 	}
 
@@ -192,7 +191,7 @@ public class AdjacencyGraph implements Graph {
 		return this.distances.length;
 	}
 
-	double getLongitudeOf (int nodeId) {
+	double getLongitudeOf (final int nodeId) {
 		return longitudes[nodeId];
 	}
 
@@ -201,6 +200,6 @@ public class AdjacencyGraph implements Graph {
 	}
 
 	public int getDistanceOf (final int nodeId) {
-		return distances[nodeId];
+		return this.distances[nodeId];
 	}
 }

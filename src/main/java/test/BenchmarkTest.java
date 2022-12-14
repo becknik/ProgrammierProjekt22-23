@@ -8,10 +8,10 @@ public class BenchmarkTest {
 	public void parameterFormattingTest() {
 		String[] params = new String[]{
 				null,
-				"C:\\Users\\timex\\IdeaProjects\\ProPro\\germany.fmi", null,
+				"/home/jnnk/Uni/current-courses/Programmier Projekt/ProPro/stgtregbz.fmi", null,
 				"0.0", null,
 				"0.0", null,
-				"C:\\Users\\timex\\IdeaProjects\\ProPro\\Benchs\\germany.que", null,
+				"/home/jnnk/Uni/current-courses/Programmier Projekt/Benchs/stgtregbz.que", null,
 				"42"};
 		Benchmark.main(params);
 	}

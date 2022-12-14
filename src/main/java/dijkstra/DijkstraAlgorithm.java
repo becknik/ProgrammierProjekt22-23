@@ -49,6 +49,7 @@ public class DijkstraAlgorithm {
 		final int targetNodeId = (oneToOneDijkstra) ? nodeIds[1] : -1;
 
 		final int[] predecessorEdges = new int[adjacencyGraph.getNodeCount()];
+		predecessorEdges[nodeIds[1]] = -1;
 
 		/*
 		This is where the fun begins!
@@ -95,6 +96,8 @@ public class DijkstraAlgorithm {
 			// Adjacent neighbour nodes & edges are saved as arrays of node and edge Ids
 			currentsAdjacentNodes = adjacencyGraph.getAdjacentNodeIdsFrom(currentDijkstraNode.nodeId);
 			currentsAdjacentEdges = adjacencyGraph.getAdjacentEdgesIdsFrom(currentDijkstraNode.nodeId);
+			assert currentsAdjacentEdges.length == currentsAdjacentNodes.length;
+			assert DijkstraAlgorithm.areAdjacentEdgeIdCorrect(adjacencyGraph.sources, currentDijkstraNode.nodeId, currentsAdjacentEdges);
 
 			// Adding adjacent nodes of current (called N for Neighbour) greedily to priorityQ
 			for (int n = 0; n < currentsAdjacentNodes.length; n++) {
@@ -108,7 +111,7 @@ public class DijkstraAlgorithm {
 				if (oldDistanceToNodeN == -1 || updatedDistanceToNodeN < oldDistanceToNodeN) {
 					dijkstraDistancesToSource[nodeN] = updatedDistanceToNodeN;
 
-					predecessorEdges[nodeN] = currentsAdjacentEdges[n];
+					predecessorEdges[nodeN] = currentsAdjacentEdges[n];     // Sets last node to current node, when distance is better
 
 					// This works due to overwritten equals method in the record which explodes if the parameter is something else than int
 					if (oldDistanceToNodeN != -1) priorityQ.remove(nodeN);
@@ -143,5 +146,18 @@ public class DijkstraAlgorithm {
 			if (nodeIds[0] == nodeIds[1])
 				throw new IllegalArgumentException("Target node ID is the same as source node ID");
 		}
+	}
+
+	private static boolean areAdjacentEdgeIdCorrect (final int[] sources, final int currentNode, final int[] currentsNodeAdjacentEdgeIds) {
+		for (int sourceNodeId = 0; sourceNodeId < sources.length; sourceNodeId++) {
+			if (sources[sourceNodeId] == currentNode) {
+				boolean containsAllAdjacentEdges = false;
+				for (int i = 0; i < currentsNodeAdjacentEdgeIds.length; i++) {
+					if (currentsNodeAdjacentEdgeIds[i] == currentNode) containsAllAdjacentEdges = true;
+				}
+				if (!containsAllAdjacentEdges) return false;
+			}
+		}
+		return true;
 	}
 }
