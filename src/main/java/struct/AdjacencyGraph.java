@@ -199,7 +199,7 @@ public class AdjacencyGraph implements Graph {
 		return latitudes[nodeId];
 	}
 
-	public int getDistanceOf (final int nodeId) {
-		return this.distances[nodeId];
+	public int getDistanceOf (final int edgeId) {
+		return this.distances[edgeId];
 	}
 }
