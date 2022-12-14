@@ -1,6 +1,9 @@
+package execution;
+
+import dijkstra.DijkstraAlgorithm;
 import loader.GraphReader;
 import struct.AdjacencyGraph;
-import struct.DijkstraResult;
+import dijkstra.DijkstraResult;
 import struct.SortedAdjacencyGraph;
 
 import javax.naming.OperationNotSupportedException;
@@ -54,7 +57,7 @@ public class Benchmark {
 				// TODO set oneToOneDistance to the distance from
 				// oneToOneSourceNodeId to oneToOneSourceNodeId as computed by
 				// the one-to-one Dijkstra
-				DijkstraResult dijkstraResultToOne = adjacencyGraph.dijkstra(oneToOneSourceNodeId, oneToOneTargetNodeId);
+				DijkstraResult dijkstraResultToOne = DijkstraAlgorithm.dijkstra(adjacencyGraph, oneToOneSourceNodeId, oneToOneTargetNodeId);
 				oneToOneDistance = dijkstraResultToOne.getDistanceFromPath();
 				System.out.println(oneToOneDistance);
 			}
@@ -68,7 +71,7 @@ public class Benchmark {
 		System.out.println("Computing one-to-all Dijkstra from node id " + sourceNodeId);
 		long oneToAllStart = System.currentTimeMillis();
 		// TODO: run one-to-all Dijkstra here
-		DijkstraResult dijkstraResultToAll = adjacencyGraph.dijkstra(sourceNodeId);
+		DijkstraResult dijkstraResultToAll = DijkstraAlgorithm.dijkstra(adjacencyGraph, sourceNodeId);
 		long oneToAllEnd = System.currentTimeMillis();
 		System.out.println("\tone-to-all Dijkstra took " + (oneToAllEnd - oneToAllStart) + "ms");
 

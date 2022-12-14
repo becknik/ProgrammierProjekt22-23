@@ -1,4 +1,6 @@
-package struct;
+package dijkstra;
+
+import struct.AdjacencyGraph;
 
 import javax.naming.OperationNotSupportedException;
 import java.util.ArrayDeque;
@@ -44,6 +46,12 @@ public class DijkstraResult {
 		this.predecessorEdgeIds = predecessorEdgeIds;
 	}
 
+	/**
+	 * OneToOne Constructor
+	 * @param adjacencyGraph
+	 * @param predecessorEdgeIds
+	 * @param path
+	 */
 	DijkstraResult (final AdjacencyGraph adjacencyGraph, final int[] predecessorEdgeIds, final ArrayDeque<Integer> path) {
 		this(adjacencyGraph, predecessorEdgeIds);
 
@@ -54,6 +62,12 @@ public class DijkstraResult {
 		this.path = path;
 	}
 
+	/**
+	 * OneToAll Constructor
+	 * @param adjacencyGraph
+	 * @param predecessorEdgeIds
+	 * @param sourceNodeId
+	 */
 	DijkstraResult (final AdjacencyGraph adjacencyGraph, final int[] predecessorEdgeIds, final int sourceNodeId) {
 		this(adjacencyGraph, predecessorEdgeIds);
 
@@ -74,6 +88,11 @@ public class DijkstraResult {
 		return true;
 	}
 
+	/**
+	 *
+	 * @return
+	 * @throws OperationNotSupportedException
+	 */
 	public int getDistanceFromPath () throws OperationNotSupportedException {
 		if (this.runType == RunType.ONE_TO_ALL)
 			throw new OperationNotSupportedException("Operation must not be called on an one to all DijkstraResult object.");
