@@ -146,8 +146,6 @@ public class AdjacencyGraph implements Graph {
 			currentEdgeId = predecessorEdgeIds[currentEdgesSourceNode];
 			currentEdgesSourceNode = this.sources[currentEdgeId];
 		}
-		path.push(sourceNodeId);    // Adds the source node to the path
-
 		return path;
 	}
 
