@@ -106,7 +106,7 @@ public class SortedAdjacencyGraph {
 		// ...pivotIndex + i gets out of bound.
 		// ...the difference of the latitude values of the imaginary node and the current watched node
 		//is higher than the actual distance between the imaginary node and the current closest node.
-		for (int i = 0; (pivotIndex + i <= sortedAdjacencyGraph.length) && (Math.abs(sortedAdjacencyGraph[pivotIndex + i].latitude - imaginaryNode.latitude) <= distanceToImaginaryNode); i++) {
+		for (int i = 0; (pivotIndex + i + 1 <= sortedAdjacencyGraph.length) && (Math.abs(sortedAdjacencyGraph[pivotIndex + i].latitude - imaginaryNode.latitude) <= distanceToImaginaryNode); i++) {
 
 			//Updating closestNodeToCoords and distanceToImaginaryNode when finding a closer node to the given coordinates.
 			if (sortedAdjacencyGraph[pivotIndex + i].getDistanceTo(imaginaryNode) < distanceToImaginaryNode) {
