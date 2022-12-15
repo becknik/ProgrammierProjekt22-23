@@ -1,7 +1,7 @@
 package test;
 
 import dijkstra.DijkstraAlgorithm;
-import dijkstra.DijkstraResult;
+import dijkstra.OneToOneResult;
 import loader.GraphReader;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,7 +41,7 @@ public class DijkstraTest {
 		// TODO How to do test parameterization with multiple parameters?
 
 		long oneToOneDijkstraStart = System.currentTimeMillis();
-		DijkstraResult dijkstraResult = DijkstraAlgorithm.dijkstra(this.adjGraph, 0, targetNode);
+		OneToOneResult dijkstraResult = (OneToOneResult) DijkstraAlgorithm.dijkstra(this.adjGraph, 0, targetNode);
 		long oneToOneDijkstraEnd = System.currentTimeMillis();
 
 		long oneToOneDijkstraElapsedTime = oneToOneDijkstraEnd - oneToOneDijkstraStart;

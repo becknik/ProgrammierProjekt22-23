@@ -8,10 +8,10 @@ public class BenchmarkTest {
 	public void parameterFormattingTest() {
 		String[] params = new String[]{
 				null,
-				System.getProperty("user.dir") + System.getProperty("file.separator") + "germany.fmi", null,
+				System.getProperty("user.dir") + System.getProperty("file.separator") + "stgtregbz.fmi", null,
 				"0.0", null,
 				"0.0", null,
-				System.getProperty("user.dir") + System.getProperty("file.separator") + "Benchs"  + System.getProperty("file.separator") + "germany.que", null,
+				System.getProperty("user.dir") + System.getProperty("file.separator") + "Benchs"  + System.getProperty("file.separator") + "stgtregbz.que", null,
 				"42"};
 		Benchmark.main(params);
 	}

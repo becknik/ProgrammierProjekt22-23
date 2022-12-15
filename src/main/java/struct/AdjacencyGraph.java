@@ -102,7 +102,7 @@ public class AdjacencyGraph implements Graph {
 	 * @return - The outgoing nodes typed as int[]
 	 */
 	public int[] getAdjacentNodeIdsFrom (final int sourceNodeId) {
-e		return Arrays.copyOfRange(targets, offset[sourceNodeId], offset[sourceNodeId + 1]);
+		return Arrays.copyOfRange(targets, offset[sourceNodeId], offset[sourceNodeId + 1]);
 	}
 
 	/**
