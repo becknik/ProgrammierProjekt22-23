@@ -89,14 +89,14 @@ public class DijkstraAlgorithm {
 
 			if (oneToOneDijkstra && currentDijkstraNode.nodeId == targetNodeId) {
 				ArrayDeque<Integer> path = adjacencyGraph.getPath(sourceNodeId, targetNodeId, predecessorEdges);
-				return new DijkstraResult(adjacencyGraph, predecessorEdges, path);
+				return new OneToOneResult(adjacencyGraph, path);
 			}
 
 			// Adjacent neighbour nodes & edges are saved as arrays of node and edge Ids
 			currentsAdjacentNodes = adjacencyGraph.getAdjacentNodeIdsFrom(currentDijkstraNode.nodeId);
 			currentsAdjacentEdges = adjacencyGraph.getAdjacentEdgesIdsFrom(currentDijkstraNode.nodeId);
 			assert currentsAdjacentEdges.length == currentsAdjacentNodes.length;
-			assert DijkstraAlgorithm.areAdjacentEdgeIdCorrect(adjacencyGraph.sources, currentDijkstraNode.nodeId, currentsAdjacentEdges);
+			// assert DijkstraAlgorithm.areAdjacentEdgeIdCorrect(adjacencyGraph.sources, currentDijkstraNode.nodeId, currentsAdjacentEdges);
 
 			// Adding adjacent nodes of current (called N for Neighbour) greedily to priorityQ
 			for (int n = 0; n < currentsAdjacentNodes.length; n++) {
@@ -119,7 +119,7 @@ public class DijkstraAlgorithm {
 				}
 			}
 		}
-		return new DijkstraResult(adjacencyGraph, predecessorEdges, sourceNodeId);
+		return new OneToAllResult(adjacencyGraph, predecessorEdges, sourceNodeId);
 	}
 
 	/**

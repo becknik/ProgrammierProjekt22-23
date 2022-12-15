@@ -1,12 +1,12 @@
 package execution;
 
 import dijkstra.DijkstraAlgorithm;
-import dijkstra.DijkstraResult;
+import dijkstra.OneToAllResult;
+import dijkstra.OneToOneResult;
 import loader.GraphReader;
 import struct.AdjacencyGraph;
 import struct.SortedAdjacencyGraph;
 
-import javax.naming.OperationNotSupportedException;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -57,7 +57,8 @@ public class Benchmark {
 				// TODO set oneToOneDistance to the distance from
 				// oneToOneSourceNodeId to oneToOneSourceNodeId as computed by
 				// the one-to-one Dijkstra
-				DijkstraResult dijkstraResultToOne = DijkstraAlgorithm.dijkstra(adjacencyGraph, oneToOneSourceNodeId, oneToOneTargetNodeId);
+				OneToOneResult dijkstraResultToOne = (OneToOneResult)
+						DijkstraAlgorithm.dijkstra(adjacencyGraph, oneToOneSourceNodeId, oneToOneTargetNodeId);
 				oneToOneDistance = dijkstraResultToOne.getDistanceFromPath();
 				System.out.println(oneToOneDistance);
 			}
@@ -71,7 +72,7 @@ public class Benchmark {
 		System.out.println("Computing one-to-all Dijkstra from node id " + sourceNodeId);
 		long oneToAllStart = System.currentTimeMillis();
 		// TODO: run one-to-all Dijkstra here
-		DijkstraResult dijkstraResultToAll = DijkstraAlgorithm.dijkstra(adjacencyGraph, sourceNodeId);
+		OneToAllResult dijkstraResultToAll = (OneToAllResult) DijkstraAlgorithm.dijkstra(adjacencyGraph, sourceNodeId);
 		long oneToAllEnd = System.currentTimeMillis();
 		System.out.println("\tone-to-all Dijkstra took " + (oneToAllEnd - oneToAllStart) + "ms");
 
@@ -82,12 +83,7 @@ public class Benchmark {
 		// TODO set oneToAllDistance to the distance from sourceNodeId to
 		// targetNodeId as computed by the one-to-all Dijkstra
 		ArrayDeque<Integer> pathToInput = new ArrayDeque<>();
-		try {
-			pathToInput = dijkstraResultToAll.getPathTo(targetNodeId);
-		} catch (OperationNotSupportedException e) {
-			System.err.println("Something clearly seems to be wrong with your entered node ID. :)");
-			e.printStackTrace();
-		}
+		pathToInput = dijkstraResultToAll.getPathTo(targetNodeId);
 		oneToAllDistance = dijkstraResultToAll.getDistanceFromPath(pathToInput);
 		System.out.println("Distance from " + sourceNodeId + " to " + targetNodeId + " is " + oneToAllDistance);
 	}
