@@ -8,7 +8,7 @@ public class BenchmarkTest {
 	public void parameterFormattingTest() {
 		String[] params = new String[]{
 				null,
-				"/home/jnnk/Uni/current-courses/Programmier Projekt/ProPro/stgtregbz.fmi", null,
+				System.getProperty("user.dir") + System.getProperty("file.separator") + "germany.fmi", null,
 				"0.0", null,
 				"0.0", null,
 				"/home/jnnk/Uni/current-courses/Programmier Projekt/Benchs/stgtregbz.que", null,
