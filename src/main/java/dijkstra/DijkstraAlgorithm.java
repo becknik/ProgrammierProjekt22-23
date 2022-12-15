@@ -49,7 +49,6 @@ public class DijkstraAlgorithm {
 		final int targetNodeId = (oneToOneDijkstra) ? nodeIds[1] : -1;
 
 		final int[] predecessorEdges = new int[adjacencyGraph.getNodeCount()];
-		predecessorEdges[nodeIds[1]] = -1;
 
 		/*
 		This is where the fun begins!

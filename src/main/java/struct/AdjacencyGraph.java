@@ -102,7 +102,7 @@ public class AdjacencyGraph implements Graph {
 	 * @return - The outgoing nodes typed as int[]
 	 */
 	public int[] getAdjacentNodeIdsFrom (final int sourceNodeId) {
-		return Arrays.copyOfRange(targets, offset[sourceNodeId], offset[sourceNodeId + 1] - 1);
+e		return Arrays.copyOfRange(targets, offset[sourceNodeId], offset[sourceNodeId + 1]);
 	}
 
 	/**
@@ -114,7 +114,7 @@ public class AdjacencyGraph implements Graph {
 	 */
 	public int[] getAdjacentEdgesIdsFrom (final int sourceNodeId) {
 		// Initialize an array which holds the edges
-		final int[] edgeIndices = new int[offset[sourceNodeId + 1] - offset[sourceNodeId] - 1];
+		final int[] edgeIndices = new int[offset[sourceNodeId + 1] - offset[sourceNodeId]];
 
 		// Adding the edge IDs which are saved in the offset array as difference between source node ID and source node ID + 1
 		for (int i = 0; i < edgeIndices.length; i++) {
