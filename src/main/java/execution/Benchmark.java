@@ -40,7 +40,7 @@ public class Benchmark {
 		long nodeFindStart = System.currentTimeMillis();
 		double[] coords = {0.0, 0.0};
 		// TODO: find closest node here and write coordinates into coords
-		SortedAdjacencyGraph.Node closestNode = sortedAdjacencyGraph.getClosestNode(lon, lat);
+		SortedAdjacencyGraph.IndexNode closestNode = sortedAdjacencyGraph.getClosestNode(lon, lat);
 		coords[0] = closestNode.longitude();
 		coords[1] = closestNode.latitude();
 		long nodeFindEnd = System.currentTimeMillis();

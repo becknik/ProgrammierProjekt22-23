@@ -75,12 +75,12 @@ public class SortedAdjacencyGraph {
 	public IndexNode getClosestNode (final double longitude, final double latitude) {
 		IndexNode imaginaryNode = new IndexNode(longitude, latitude, -1);
 		//find Index, where the imaginaryNode would be contained in sortedAdjacencyGraph, according to the latitude coordinate.
-		int colestNodeIndex = this.getNodeWithNearestLatitude(imaginaryNode);
+		int closestNodeIndex = this.getNodeWithNearestLatitude(imaginaryNode);
 
-		colestNodeIndex = this.getNearestNodeId(longitude, latitude, colestNodeIndex, MovementDirection.RIGHT);
-		colestNodeIndex = this.getNearestNodeId(longitude, latitude, colestNodeIndex, MovementDirection.LEFT);
+		closestNodeIndex = this.getNearestNodeId(longitude, latitude, closestNodeIndex, MovementDirection.RIGHT);
+		closestNodeIndex = this.getNearestNodeId(longitude, latitude, closestNodeIndex, MovementDirection.LEFT);
 
-		return this.nodeIdsSortedByLatitude[colestNodeIndex];
+		return this.nodeIdsSortedByLatitude[closestNodeIndex];
 	}
 
 	/**
