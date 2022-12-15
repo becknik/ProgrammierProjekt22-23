@@ -11,7 +11,7 @@ public class BenchmarkTest {
 				System.getProperty("user.dir") + System.getProperty("file.separator") + "germany.fmi", null,
 				"0.0", null,
 				"0.0", null,
-				"/home/jnnk/Uni/current-courses/Programmier Projekt/Benchs/stgtregbz.que", null,
+				System.getProperty("user.dir") + System.getProperty("file.separator") + "Benchs"  + System.getProperty("file.separator") + "germany.que", null,
 				"42"};
 		Benchmark.main(params);
 	}
