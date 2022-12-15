@@ -12,18 +12,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestSortedAdjacencyGraph {
 
-	AdjacencyGraph toyAdjGraph;
+	AdjacencyGraph stgtAdjGraph;
 
 	@BeforeEach
 	public void setUpAdjGraphs () {
-		toyAdjGraph = GraphReader.createAdjacencyGraphOf(new File("toy.fmi"));
+		stgtAdjGraph = GraphReader.createAdjacencyGraphOf(new File("stgtregbz.fmi"));
 	}
 
 	@Test
 	public void simpleGetClosestNodeTest () {
-		SortedAdjacencyGraph closestNode = new SortedAdjacencyGraph(this.toyAdjGraph);
-		SortedAdjacencyGraph.Node node = closestNode.getClosestNode(0, 0);
-		assertEquals(0, node.nodeId());
+		SortedAdjacencyGraph closestNode = new SortedAdjacencyGraph(this.stgtAdjGraph);
+		SortedAdjacencyGraph.IndexNode node = closestNode.getClosestNode(48.94207470000000627, 10.28);
+		assertEquals(540, node.nodeId());
 	}
 
 	@Test
