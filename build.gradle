@@ -16,12 +16,12 @@ dependencies {
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
 }
 
-ext {
-    javaMainClass = 'src.main.java.Benchmark'
+application {
+    mainClass = 'execution.Benchmark'
 }
 
-application {
-    mainClass = 'Benchmark'
+run {
+    standardInput = System.in
 }
 
 test {
