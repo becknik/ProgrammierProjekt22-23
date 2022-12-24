@@ -8,9 +8,8 @@ import java.util.ArrayDeque;
 /**
  * TODO JavaDoc
  */
-public abstract sealed class DijkstraResult permits OneToAllResult, OneToOneResult {
-
-
+//public abstract sealed class DijkstraResult permits OneToAllResult, OneToOneResult {
+public abstract class DijkstraResult {
 	protected final AdjacencyGraph adjacencyGraph;
 
 	protected DijkstraResult (final AdjacencyGraph adjacencyGraph) {
