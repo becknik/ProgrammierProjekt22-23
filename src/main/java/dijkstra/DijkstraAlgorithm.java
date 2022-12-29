@@ -146,17 +146,4 @@ public class DijkstraAlgorithm {
 				throw new IllegalArgumentException("Target node ID is the same as source node ID");
 		}
 	}
-
-	private static boolean areAdjacentEdgeIdCorrect (final int[] sources, final int currentNode, final int[] currentsNodeAdjacentEdgeIds) {
-		for (int sourceNodeId = 0; sourceNodeId < sources.length; sourceNodeId++) {
-			if (sources[sourceNodeId] == currentNode) {
-				boolean containsAllAdjacentEdges = false;
-				for (int i = 0; i < currentsNodeAdjacentEdgeIds.length; i++) {
-					if (currentsNodeAdjacentEdgeIds[i] == currentNode) containsAllAdjacentEdges = true;
-				}
-				if (!containsAllAdjacentEdges) return false;
-			}
-		}
-		return true;
-	}
 }
