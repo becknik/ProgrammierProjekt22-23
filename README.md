@@ -23,6 +23,8 @@ Dependencies:
 - Clone repo & navigate to this repos root
 - Execute `gradle build`
 - Run `gradle run --args="..."` with ... being replaced by the following formatting:
+> It seems like the execution of this project requires a decent amount of RAM.
+> If this occurrs on your machine, please create a `gradle.properties` file in the projects root and add the argument `org.gradle.jvmargs=-Xmx4096m`.
 
 ### Examples for `args` String for `Benchmark.java`
 
