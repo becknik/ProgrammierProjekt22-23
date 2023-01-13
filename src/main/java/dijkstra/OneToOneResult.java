@@ -6,6 +6,9 @@ import java.util.ArrayDeque;
 import java.util.HashSet;
 import java.util.function.Predicate;
 
+/**
+ * Holds a path object from source to target node, which holds edge ids.
+ */
 public final class OneToOneResult extends DijkstraResult {
 
 	private final Predicate<ArrayDeque<Integer>> isPathValid = (path) -> {

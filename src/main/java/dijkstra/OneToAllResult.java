@@ -4,6 +4,10 @@ import struct.AdjacencyGraph;
 
 import java.util.ArrayDeque;
 
+/**
+ * This class stores the predecessor node array which holds the edge ids to the shortest paths next node,
+ * were as all edges finally lead to the source node id. The source nodes edge in the array is set to 0.
+ */
 public final class OneToAllResult extends DijkstraResult {
 
 	private final int[] predecessorEdgeIds;
@@ -11,7 +15,7 @@ public final class OneToAllResult extends DijkstraResult {
 
 
 	/**
-	 * OneToAll Constructor
+	 * OneToAll Constructor. Constructs a new result by initializing the class members & does some precondition checks
 	 *
 	 * @param adjacencyGraph
 	 * @param predecessorEdgeIds
@@ -27,11 +31,18 @@ public final class OneToAllResult extends DijkstraResult {
 
 		assert predecessorEdgeIds != null;
 		assert predecessorEdgeIds.length == adjacencyGraph.getNodeCount();
-		assert predecessorEdgeIds[sourceNodeId] < this.adjacencyGraph.getNodeCount();   // TODO Maybe add more checks
+		assert predecessorEdgeIds[sourceNodeId] < this.adjacencyGraph.getNodeCount();
 
 		this.predecessorEdgeIds = predecessorEdgeIds;
 	}
 
+	/**
+	 * Returns the path (consisting out of edge ids) from the source node (class member) to the specified node id by calling the
+	 * method in the {@code AdjacencyGraph} class.
+	 *
+	 * @param targetNodeId The target node
+	 * @return A path of edge IDs from the source node to the target node
+	 */
 	public ArrayDeque<Integer> getPathTo (final int targetNodeId) {
 		if (this.sourceNodeId == targetNodeId)
 			throw new IllegalArgumentException("Target node must not have the same index as source node.");
