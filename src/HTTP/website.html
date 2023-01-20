@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Dijkstra Navigation</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+        integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI="
+        crossorigin/>
+  <link rel="stylesheet" href="style.css"></link>
+
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
+          integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM="
+          crossorigin></script>
+  <script src="map-setup.js"></script>
+</head>
+<body >
+  <h1>Dijkstra Naviagtion</h1>
+
+  <div id="map" onload="setupMapContents()">It's a map!</div>
+
+  <script>
+      // Sets the starting view
+    const map = L.map('map').setView([48.783333, 9.183333], 11);
+
+    // Calls fucntion from map-setup.js
+    setupMapContents();
+
+let currentLatitude ;
+let currentLongitude ;
+
+    function onMapClick(e) {
+
+      L.popup()
+       .setLatLng(e.latlng)
+       .setContent("Coords\nLong:" + e.latlng.lat.toString() + "\n" + e.latlng.lng.toString())
+       .openOn(map);
+
+      let startLongitude = e.latlng.lng;
+      let startLatitude = e.latlng.lat;
+
+      /*
+      document.getElementById('startLongitude')
+              .innerHTML = startLongitude
+              .toString();
+      document.getElementById('startLatitude')
+              .innerHTML = startLatitude
+              .toString();
+
+      document.getElementById('targetLongitude')
+              .innerText = startLongitude
+              .toString();
+      document.getElementById('targetLatitude')
+              .innerText = startLatitude
+              .toString();
+      */
+      currentLatitude = startLatitude;
+      currentLongitude = startLongitude;
+    }
+
+    map.on('click', onMapClick);
+  </script>
+
+  <hr style="background: black">
+
+  <h2>Coordinates</h2>
+  <p>Please enter your start and traget coords below or just select points on the map.</p>
+
+  <div class="userInput">
+  <form name="userStartingCoordinate">
+    <label>Starting Point Longitude:</label>
+    <label id="startLongitude" value="Enter start longitude"></label>
+    <br>
+    <label>Starting Point Latitude:</label>
+    <label id="startLatitude" value="Enter start latitude"></label><br>
+    <input type="button" id="btn_Start" onclick="setStart()" value="Set Start Coordinate"/>
+  </form>
+  </div>
+
+  <div class="userInput">
+  <form name="userTargetCoordinate">
+    <label>Target Point Longitude:</label>
+    <label id="targetLongitude" ></label><br>
+    <label>Target Point Latitude:</label>
+    <label id="targetLatitude" ></label><br>
+    <input type="button" id="btn_Start" onclick="setTarget()" value="Set target Coordinate"/>
+  </form>
+
+<script>
+  function setStart(){
+    document.getElementById('startLongitude')
+              .innerHTML = currentLongitude
+              .toString();
+      document.getElementById('startLatitude')
+              .innerHTML = currentLatitude
+              .toString();
+  }
+
+  function setTarget(){
+    document.getElementById('targetLongitude')
+              .innerHTML = currentLongitude
+              .toString();
+      document.getElementById('targetLatitude')
+              .innerHTML = currentLatitude
+              .toString();
+  }
+</script>
+
+</div>
+
+  Test Output: <span id="testOutput"></span>
+
+  <hr style="background: black">
+</body>
+</html>
