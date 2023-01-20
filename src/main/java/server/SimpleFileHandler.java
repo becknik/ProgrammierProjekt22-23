@@ -1,21 +1,24 @@
-package Server;
+package server;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.sql.SQLOutput;
 
-public class FileHandler implements Handler {
-        public void handle(Request request, Response response) {
+public class SimpleFileHandler implements Handler {
+        public void handle(final Request request, final Response response) {
+
+            System.err.println(request.getPath());
 
             try (FileInputStream file = new FileInputStream(request.getPath().substring(1)))
             {
                 response.setResponseCode(200, "OK");
                 response.addHeader("Content-Type", "text/html");
 
+                /*
                 int estimatedBytesToRead;
                 int offset = 0;
                 StringBuilder responseBuilder = new StringBuilder();
-                /*
                 do {
                     estimatedBytesToRead = file.available();
                     offset += estimatedBytesToRead;
@@ -26,6 +29,7 @@ public class FileHandler implements Handler {
                 } while (estimatedBytesToRead != 0);
                 */
                 // TODO this is slow
+
                 StringBuffer buf = new StringBuffer();
                 int c;
                 while ((c = file.read()) != -1) {

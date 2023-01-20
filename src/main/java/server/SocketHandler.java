@@ -1,17 +1,15 @@
-package Server;
+package server;
+
+import com.sun.net.httpserver.HttpHandler;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.HashMap;
-import java.net.ServerSocket;
 import java.net.Socket;
-import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.BufferedReader;
 
-class SocketHandler implements Runnable  {
+class SocketHandler implements Runnable {
     private Socket socket;
     private Handler defaultHandler;
     private Map<String, Map<String, Handler>> handlers;

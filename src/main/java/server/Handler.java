@@ -1,9 +1,6 @@
-package Server;
+package server;
 
 import java.io.IOException;
-import java.util.Map;
-import java.io.BufferedReader;
-import java.io.OutputStream;
 
 /**
  * Handlers must be thread safe.
