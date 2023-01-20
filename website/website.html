@@ -1,117 +1,89 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <title>Dijkstra Navigation</title>
+    <title>Dijkstra Navigation</title>
 
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
-        integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI="
-        crossorigin/>
-  <link rel="stylesheet" href="style.css">Could not find style.css</link>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+          integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI="
+          crossorigin/>
+    <link rel="stylesheet" href="style.css">
 
-  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
-          integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM="
-          crossorigin></script>
-  <script src="map-setup.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
+            integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM="
+            crossorigin></script>
+
+    <script type="text/javascript" src="map-setup.js"></script>
+    <!-- TODO <script type="text/javascript" src="website-interaction.js"></script> -->
 </head>
-<body >
-  <h1>Dijkstra Navigation</h1>
+<body>
+<h1>Dijkstra Navigation</h1>
 
-  <div id="map" onload="setupMapContents()" >It's a map!</div>
+<div id="map" onload="setupMapContents()">It's a map</div>
 
-  <script>
-      // Sets the starting view
-    const map = L.map('map').setView([48.783333, 9.183333], 11);
 
-    // Calls fucntion from map-setup.js
-    setupMapContents();
+<hr>
 
-let currentLatitude ;
-let currentLongitude ;
+<h2>Coordinates</h2>
+<p>Please enter your start and target coordinates below or just select points on the map.</p>
 
-    function onMapClick(e) {
-
-      L.popup()
-       .setLatLng(e.latlng)
-       .setContent("Coords\nLong:" + e.latlng.lat.toString() + "\n" + e.latlng.lng.toString())
-       .openOn(map);
-
-      let startLongitude = e.latlng.lng;
-      let startLatitude = e.latlng.lat;
-
-      /*
-      document.getElementById('startLongitude')
-              .innerHTML = startLongitude
-              .toString();
-      document.getElementById('startLatitude')
-              .innerHTML = startLatitude
-              .toString();
-
-      document.getElementById('targetLongitude')
-              .innerText = startLongitude
-              .toString();
-      document.getElementById('targetLatitude')
-              .innerText = startLatitude
-              .toString();
-      */
-      currentLatitude = startLatitude;
-      currentLongitude = startLongitude;
-    }
-
-    map.on('click', onMapClick);
-  </script>
-
-  <hr style="background: black">
-
-  <h2>Coordinates</h2>
-  <p>Please enter your start and traget coords below or just select points on the map.</p>
-
-  <div class="userInput">
-  <form name="userStartingCoordinate">
-    <label>Starting Point Longitude:</label>
-    <label id="startLongitude" value="Enter start longitude"></label>
-    <br>
-    <label>Starting Point Latitude:</label>
-    <label id="startLatitude" value="Enter start latitude"></label><br>
-    <input type="button" id="btn_Start" onclick="setStart()" value="Set Start Coordinate"/>
-  </form>
-  </div>
-
-  <div class="userInput">
-  <form name="userTargetCoordinate">
-    <label>Target Point Longitude:</label>
-    <label id="targetLongitude" ></label><br>
-    <label>Target Point Latitude:</label>
-    <label id="targetLatitude" ></label><br>
-    <input type="button" id="btn_Target" onclick="setTarget()" value="Set target Coordinate"/>
-  </form>
-
-<script>
-  function setStart(){
-    document.getElementById('startLongitude')
-              .innerHTML = currentLongitude
-              .toString();
-      document.getElementById('startLatitude')
-              .innerHTML = currentLatitude
-              .toString();
-  }
-
-  function setTarget(){
-    document.getElementById('targetLongitude')
-              .innerHTML = currentLongitude
-              .toString();
-      document.getElementById('targetLatitude')
-              .innerHTML = currentLatitude
-              .toString();
-  }
-</script>
-
+<div class="userInput">
+    <label>Starting Point:</label>
+    <input type="text" id="startingPoint">
+    <input type="button" value="Set" onclick="setTextBox('startingPoint')"/>
 </div>
 
-  Test Output: <span id="testOutput"></span>
+<div class="userInput">
+    <label>Target Point:</label>
+    <input type="text" id="targetPoint">
+    <input type="button" value="Set" onclick="setTextBox('targetPoint')"/>
+</div>
 
-  <hr style="background: black">
+<script>
+    // TODO find a way how to refactor this into another file...
+
+    // Sets the starting view to Stuttgart
+    const map = L.map('map').setView([48.783333, 9.183333], 11);
+
+    // Calls function from map-setup.js to set up the basic map contents
+    setupMapContents();
+
+    let currentLatitude;
+    let currentLongitude;
+
+    // For map onclick popup action & global coords update
+    function setGlobalVariableAndPopup(e) {
+
+        const clicksLongitude = e.latlng.lng;
+        const clicksLatitude = e.latlng.lat;
+
+        currentLatitude = clicksLatitude;
+        currentLongitude = clicksLongitude;
+
+        L.popup()
+            .setLatLng(e.latlng)
+            .setContent("Longitude: " + clicksLongitude + "<br>Latitude: " + clicksLatitude)
+            .openOn(map);
+    }
+    map.on('click', setGlobalVariableAndPopup);
+
+    // For setting textbox value to the with ID of textBoxID for button functionality
+    function setTextBox(textBoxID) {
+        const formattedCoords = String('(' + currentLongitude + ", " + currentLatitude + ')');
+
+        const startingPointTextBox = document.getElementById(textBoxID);
+
+        // TODO
+        // const startPointTextBoxValue = startingPointTextBox.getAttribute("value");
+        // Case: User entered some coords into text box
+        // Case:  User did not change text box & maybe selected another point on the map?
+
+        startingPointTextBox.setAttribute("size", formattedCoords.length + "pt");
+        startingPointTextBox.setAttribute("value", formattedCoords);
+    }
+</script>
+<br>
 </body>
 </html>
