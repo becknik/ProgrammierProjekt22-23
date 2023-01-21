@@ -30,9 +30,9 @@ public class MainServer {
 	};
 
 	private final HttpHandler peripheryFileHandler = exchange -> {
-		URI request = exchange.getRequestURI();
-
 		exchange.sendResponseHeaders(HttpURLConnection.HTTP_OK, 0);
+
+		URI request = exchange.getRequestURI();
 
 		File peripheryFile = new File(System.getProperty("user.dir") + "/website" + request.getPath());
 		FileInputStream websiteStream = new FileInputStream(peripheryFile);
@@ -42,6 +42,15 @@ public class MainServer {
 
 		responseStream.close();
 		websiteStream.close();
+	};
+
+	private final HttpHandler requestHandler = exchange -> {
+
+		byte[] requestBody = exchange.getRequestBody().readAllBytes();
+		String message = new String(requestBody);
+		System.out.println(message);
+
+		exchange.sendResponseHeaders(HttpURLConnection.HTTP_ACCEPTED,-1);
 	};
 
 	final private HttpServer httpServer;
@@ -70,6 +79,7 @@ public class MainServer {
 		httpServer.createContext("/", this.websiteHandler);
 		httpServer.createContext("/map-setup.js", this.peripheryFileHandler);
 		httpServer.createContext("/style.css", this.peripheryFileHandler);
+		httpServer.createContext("/src/main/java/server/MainServer.java", this.requestHandler);
 	}
 
 	/**
@@ -84,7 +94,7 @@ public class MainServer {
 	{
 		MainServer server = new MainServer();
 
-		System.out.println("INFO: Starting Java HttpServer...");
+		System.out.println("INFO:\tStarting Java HttpServer...");
 		server.start();
 	}
 }
