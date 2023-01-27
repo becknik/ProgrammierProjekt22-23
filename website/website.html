@@ -23,7 +23,6 @@
 
 <div id="map" onload="setupMapContents()">It's a map</div>
 
-
 <hr>
 
 <h2>Coordinates</h2>
@@ -40,7 +39,7 @@
     <input type="text" id="targetPoint">
     <input type="button" value="Set" onclick="setTextBox('targetPoint')"/>
 </div>
-<input type="button" value="Dijkstrulate" onclick="sendCoordinates()"><label id="dijkstrulateInfo"></label>
+<input type="button" value="Dijkstrulate" onclick="sendCoordinates()"><label id="infoMessage"></label>
 <br>
 <label id="AJAXResultTest"></label>
 <br>
@@ -71,8 +70,8 @@
 
     map.on('click', setGlobalVariableAndPopup);
 
-    let startingPoint;
-    let targetPoint;
+    let startingPoint = new Array(2);
+    let targetPoint = new Array(2);
 
     // For setting textbox value to the with ID of textBoxID for button functionality
     function setTextBox(textBoxID) {
@@ -86,9 +85,11 @@
         // Case:  User did not change text box & maybe selected another point on the map?
 
         if (textBoxID === "startingPoint") {
-            startingPoint = (clicksLongitude, clicksLatitude);
-        } else {
-            targetPoint = (clicksLongitude, clicksLatitude);
+            startingPoint[0] = clicksLongitude;
+            startingPoint[1] = clicksLatitude;
+        } else if (textBoxID === "targetPoint") {
+            targetPoint[0] = clicksLongitude;
+            targetPoint[1] = clicksLatitude;
         }
 
         startingPointTextBox.setAttribute("size", formattedCoords.length + "pt");
@@ -96,7 +97,7 @@
     }
 
     function sendCoordinates() {
-        const messageFiled = document.getElementById("dijkstrulateInfo");
+        const messageFiled = document.getElementById("infoMessage");
         // Resetting previous error messages
         messageFiled.setAttribute("style","color:black");
         messageFiled.innerHTML = "";
@@ -106,14 +107,21 @@
 
             request.open("POST", "/src/main/java/server/MainServer.java"); // TODO Maybe use another name here
             request.setRequestHeader("Accept", "application/json");
-            request.setRequestHeader("Accept-Charset", "utf-8");
-            request.send(String(startingPoint[0]));
+            request.setRequestHeader("Accept", "utf-8");
+            const points = new Array(4);
+            points[0] = startingPoint[0];
+            points[1] = startingPoint[1];
+            points[2] = targetPoint[0];
+            points[3] = targetPoint[1];
+            request.send("9.286193847656252,48.767447942608854,9.286193847656252,48.767447942608854");
+
 
             request.onreadystatechange = function () {
-                if ( request.readyState.valueOf() === 202) { // TODO This doesnt work, also doesnt mod with % - wtf...
-                    document.getElementById("AJAXResultTest").innerHTML = "It works!";
+                if ((request.status % 100) === 2) {
+                    document.getElementById("AJAXResultTest").innerHTML = "Response received";
+                    //console.log(request.responseText);
                 } else {
-                    console.log("ERROR:\tRequest failed :P with " + request.status);
+                    console.log("ERROR:\tRequest returned status code " + request.status);
                 }
             }
         } else {
