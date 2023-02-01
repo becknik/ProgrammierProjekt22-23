@@ -103,23 +103,28 @@
         messageFiled.innerHTML = "";
 
         if (startingPoint != null && targetPoint != null) {
+            // Maybe switch to jQuery?
             let request = new XMLHttpRequest();
 
             request.open("POST", "/src/main/java/server/MainServer.java"); // TODO Maybe use another name here
             request.setRequestHeader("Accept", "application/json");
             request.setRequestHeader("Accept", "utf-8");
-            const points = new Array(4);
-            points[0] = startingPoint[0];
-            points[1] = startingPoint[1];
-            points[2] = targetPoint[0];
-            points[3] = targetPoint[1];
-            request.send("9.286193847656252,48.767447942608854,9.286193847656252,48.767447942608854");
+            const jsonString = '{\n' +
+                '"start": {\n' +
+                '"long": ' + startingPoint[0] + ',\n' +
+                '"lat": ' + startingPoint[1] + ',\n' +
+                '},\n' +
+                '"target": {\n' +
+                '"long": ' + targetPoint[0] + ',\n' +
+                '"lat": ' + targetPoint[1] + ',\n' +
+                '}\n}';
+            request.send(jsonString);
 
 
             request.onreadystatechange = function () {
                 if ((request.status % 100) === 2) {
                     document.getElementById("AJAXResultTest").innerHTML = "Response received";
-                    //console.log(request.responseText);
+                    console.log(request.responseText);
                 } else {
                     console.log("ERROR:\tRequest returned status code " + request.status);
                 }

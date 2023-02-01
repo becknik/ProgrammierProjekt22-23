@@ -2,7 +2,10 @@ package server;
 
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
+import dijkstra.DijkstraAlgorithm;
+import dijkstra.DijkstraResult;
 import loader.GraphReader;
+import org.json.JSONObject;
 import struct.AdjacencyGraph;
 import struct.SortedAdjacencyGraph;
 
@@ -10,7 +13,6 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.URI;
-import java.nio.ByteBuffer;
 
 public class MainServer {
 	private final HttpHandler websiteHandler = exchange -> {
@@ -49,55 +51,48 @@ public class MainServer {
 	private final HttpHandler requestHandler = exchange -> {
 		System.out.println("INFO:\tReceived request by client:" + exchange.getRequestMethod());
 
+		// If receives request & graph structure is currently not set up, a error response is sent
 		if (this.adjacencyGraph == null) {
 			System.out.println("ERROR:\tServer received request while setting up AdjacencyGraph");
-			exchange.sendResponseHeaders(HttpURLConnection.HTTP_BAD_REQUEST,0);
+			exchange.sendResponseHeaders(HttpURLConnection.HTTP_BAD_REQUEST, 0);
 
 			OutputStream outputStream = exchange.getResponseBody();
 			byte[] responseMessage = "The server has not finished the setup of the underlying graph file. Please wait some time".getBytes();
 			outputStream.write(responseMessage);
 			outputStream.close();
-		}
-		else {
-			byte[] requestBody = exchange.getRequestBody().readAllBytes();
-			exchange.getRequestBody().close();
 
-			String message = new String(requestBody);
-			System.out.println(message);
-
-
-
-			ByteBuffer byteBuffer = ByteBuffer.wrap(requestBody);
-			double bufferCoordinate;
-			double[] coordinates = new double[4];
-			for (int arrayIndex = 0; (bufferCoordinate = byteBuffer.getDouble()) != 0; arrayIndex++) {
-				coordinates[arrayIndex] = bufferCoordinate;
+		} else {
+			// Get request body string content
+			String requestBodyMessage = null;
+			try (InputStream inputStream = exchange.getRequestBody()) {
+				byte[] requestBody = inputStream.readAllBytes();
+				requestBodyMessage = new String(requestBody);
 			}
 
-			for (double d : coordinates) System.out.println(d);
+			// Create wrapper object which parses the nested JSON input to further JSON objects
+			JSONObject requestJSON = new JSONObject(requestBodyMessage);
 
+			// Unnesting JSON structure by creating object containing starting long,lat from the nested one
+			JSONObject startChoords = requestJSON.getJSONObject("start");
+			int startNodeId = this.getNearestNodeIdFrom(startChoords);
 
-/*
-			String[] coordinates2 = new String[4];
-			coordinates2 = message.split(", ");
+			JSONObject targetChoords = requestJSON.getJSONObject("target");
+			int targetNodeId = this.getNearestNodeIdFrom(targetChoords);
 
-			SortedAdjacencyGraph.IndexNode closestStartNode = this.sortedAdjacencyGraph.getClosestNode(Double.parseDouble(coordinates2[0]), Double.parseDouble(coordinates2[1]));
-			Double[] startNodeCoords = new Double[2];
-			startNodeCoords[0] = closestStartNode.longitude();
-			startNodeCoords[1] = closestStartNode.latitude();
+			System.out.println("INFO:\tEmitted start node ID: " + startNodeId + " & targetNodeID: " + targetNodeId);
 
-			SortedAdjacencyGraph.IndexNode closestTargetNode = this.sortedAdjacencyGraph.getClosestNode(Double.parseDouble(coordinates2[2]), Double.parseDouble(coordinates2[3]));
-			Double[] targetNodeCoords = new Double[2];
-			targetNodeCoords[0] = closestTargetNode.longitude();
-			targetNodeCoords[1] = closestTargetNode.latitude();
+			// FIXME: Somehow won't proceed right here...
+			DijkstraResult result =
+					DijkstraAlgorithm.dijkstra(this.adjacencyGraph, startNodeId, targetNodeId);
+			System.out.println("test");
+			//ArrayDeque<Integer> path =  result.getPath();
+			//System.out.println(path);
 
-			System.out.println(startNodeCoords);
+			exchange.sendResponseHeaders(HttpURLConnection.HTTP_ACCEPTED, 0);
 
-
- */
-
-
-			exchange.sendResponseHeaders(HttpURLConnection.HTTP_ACCEPTED, -1);
+			try (OutputStream outputStream = exchange.getResponseBody()) {
+				outputStream.write("lol".getBytes());
+			}
 		}
 	};
 
@@ -133,10 +128,19 @@ public class MainServer {
 	}
 
 	/**
+	 * Simply calls start on the server & prints out a info message :)
+	 */
+	public void start()
+	{
+		System.out.println("INFO:\tStarting Java HttpServer...");
+		this.httpServer.start();
+	}
+
+	/**
 	 * Creates a background thread executing the GraphReader.read() method. The generated adjacencyGraph is set to this classes {@code this.adjacencyGraph} reference
 	 */
-	private void setUpGraph() {
-
+	private void setUpGraph()
+	{
 		Runnable setUpGraph = () -> {
 			System.out.println("INFO:\tStarting graph setup");
 			File graphSourceFile = new File(System.getProperty("user.dir") + System.getProperty("file.separator") + "stgtregbz.fmi");
@@ -147,16 +151,30 @@ public class MainServer {
 			assert this.adjacencyGraph != null;
 			assert this.sortedAdjacencyGraph != null;
 		};
+
 		new Thread(setUpGraph).start();
 	}
 
+
 	/**
-	 * Simply calls start on the server & prints out a info message :)
+	 * Returns the node id of the nearest node to the specified {@link JSONObject}, which must contain a coordinate formatted
+	 * as "long:" and "lat:".
+	 * Uses the local classes' {@link SortedAdjacencyGraph} instance for this.
+	 *
+	 * @param jsonChoords Containint "long:" and "lat:" with following double primitives
+	 * @return The ID of the closest node
 	 */
-	public void start()
+	private int getNearestNodeIdFrom(final JSONObject jsonChoords)
 	{
-		System.out.println("INFO:\tStarting Java HttpServer...");
-		this.httpServer.start();
+		double longitude = jsonChoords.getDouble("long");
+		double latitude = jsonChoords.getDouble("lat");
+
+		System.out.println("INFO:\t\tParsed (" + longitude + ',' + latitude + ") from JSNO Object");
+
+		SortedAdjacencyGraph.IndexNode closestNode =
+				this.sortedAdjacencyGraph.getClosestNode(longitude, latitude);
+
+		return closestNode.nodeId();
 	}
 
 	public static void main(String... args)
