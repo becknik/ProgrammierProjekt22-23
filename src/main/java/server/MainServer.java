@@ -4,15 +4,21 @@ import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import dijkstra.DijkstraAlgorithm;
 import dijkstra.DijkstraResult;
+import dijkstra.OneToOneResult;
 import loader.GraphReader;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import struct.AdjacencyGraph;
 import struct.SortedAdjacencyGraph;
 
+import java.awt.geom.Point2D;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.HashSet;
 
 public class MainServer {
 	private final HttpHandler websiteHandler = exchange -> {
@@ -79,19 +85,19 @@ public class MainServer {
 			JSONObject targetChoords = requestJSON.getJSONObject("target");
 			int targetNodeId = this.getNearestNodeIdFrom(targetChoords);
 
-			System.out.println("INFO:\tEmitted start node ID: " + startNodeId + " & targetNodeID: " + targetNodeId);
-
-			// FIXME: Somehow won't proceed right here...
-			DijkstraResult result =
+			OneToOneResult result = (OneToOneResult)
 					DijkstraAlgorithm.dijkstra(this.adjacencyGraph, startNodeId, targetNodeId);
-			System.out.println("test");
-			//ArrayDeque<Integer> path =  result.getPath();
-			//System.out.println(path);
 
-			exchange.sendResponseHeaders(HttpURLConnection.HTTP_ACCEPTED, 0);
+			ArrayList<Point2D.Double> pathInCoordinates =  result.getPathInCoordinates();
+			System.out.println("INFO:\tPath is " + pathInCoordinates.size() + " edges long");
+
+			String geoJSON = this.buildGeoJSONFrom(pathInCoordinates);
+			System.out.println(geoJSON);
+
+			exchange.sendResponseHeaders(HttpURLConnection.HTTP_ACCEPTED, geoJSON.length());
 
 			try (OutputStream outputStream = exchange.getResponseBody()) {
-				outputStream.write("lol".getBytes());
+				outputStream.write(geoJSON.getBytes());
 			}
 		}
 	};
@@ -142,8 +148,8 @@ public class MainServer {
 	private void setUpGraph()
 	{
 		Runnable setUpGraph = () -> {
-			System.out.println("INFO:\tStarting graph setup");
-			File graphSourceFile = new File(System.getProperty("user.dir") + System.getProperty("file.separator") + "stgtregbz.fmi");
+			System.out.println("INFO:\tStarting graph setup...");
+			File graphSourceFile = new File(System.getProperty("user.dir") + System.getProperty("file.separator") + "stgtregbz.fmi"); // germany.fmi
 			this.adjacencyGraph = GraphReader.createAdjacencyGraphOf(graphSourceFile);
 			this.sortedAdjacencyGraph = new SortedAdjacencyGraph(this.adjacencyGraph);
 			System.out.println("INFO:\tFinished graph setup");
@@ -169,12 +175,34 @@ public class MainServer {
 		double longitude = jsonChoords.getDouble("long");
 		double latitude = jsonChoords.getDouble("lat");
 
-		System.out.println("INFO:\t\tParsed (" + longitude + ',' + latitude + ") from JSNO Object");
+		System.out.println("INFO:\t\tParsed (" + longitude + ',' + latitude + ") from JSON Object");
 
-		SortedAdjacencyGraph.IndexNode closestNode =
-				this.sortedAdjacencyGraph.getClosestNode(longitude, latitude);
+		SortedAdjacencyGraph.IndexNode closestNode = this.sortedAdjacencyGraph.getClosestNode(longitude, latitude);
+
+		System.out.println("INFO:\t\tClosest node is " + closestNode.nodeId());
 
 		return closestNode.nodeId();
+	}
+
+	private String buildGeoJSONFrom(final ArrayList<Point2D.Double> coordPath) {
+		// See https://www.rfc-editor.org/rfc/rfc7946#section-3.1.4
+		JSONObject geoJSON = new JSONObject();
+		JSONArray coordinatesArray = new JSONArray();
+
+		for (var coordinate : coordPath) {
+			JSONArray pointAsArray = new JSONArray();
+			pointAsArray.put(coordinate.getX());
+			pointAsArray.put(coordinate.getY());
+
+			coordinatesArray.put(pointAsArray);
+		}
+		geoJSON.put("type", "LineString");
+		geoJSON.put("coordinates", coordinatesArray);
+
+		JSONArray geoJSONArray = new JSONArray();
+		geoJSONArray.put(geoJSON);
+
+		return geoJSONArray.toString();
 	}
 
 	public static void main(String... args)

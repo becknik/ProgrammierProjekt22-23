@@ -1,5 +1,6 @@
 package struct;
 
+import java.awt.geom.Point2D;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.Arrays;
@@ -173,6 +174,21 @@ public class AdjacencyGraph implements Graph {
 		}
 
 		return new double[]{highestLongitude, highestLatitude, lowestLongitude, lowestLatitude};
+	}
+
+	/**
+	 * Returns the source/ target node coordinates as object from the provided edge ID.
+	 *
+	 * @param edgeId The edge id the start/target node is returned from
+	 * @param target If set to true, the coords of edges target node is returned, else the coords of source node is returned
+	 * @return
+	 */
+	public Point2D.Double getEdgeIdsNode(final int edgeId, final boolean target) {
+		int nodeId = (target) ? this.targets[edgeId] : this.sources[edgeId];
+		double targetNodesLongitude = this.longitudes[nodeId];
+		double targetNodesLatitude = this.latitudes[nodeId];
+
+		return new Point2D.Double(targetNodesLongitude, targetNodesLatitude);
 	}
 
 	/**

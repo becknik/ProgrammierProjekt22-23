@@ -1,8 +1,11 @@
 package dijkstra;
 
+import org.w3c.dom.Node;
 import struct.AdjacencyGraph;
 
+import java.awt.geom.Point2D;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.function.Predicate;
 
@@ -51,5 +54,24 @@ public final class OneToOneResult extends DijkstraResult {
 
 	public ArrayDeque<Integer> getPath () {
 		return new ArrayDeque<>(this.path);
+	}
+
+	/**
+	 * This method returns the path of the one to one dijkstra result as coordinates
+	 * @return path of the dijkstra result in coordinates
+	 */
+	public ArrayList<Point2D.Double> getPathInCoordinates () {
+		ArrayList<Point2D.Double> result = new ArrayList<>(this.path.size() + 1);
+
+		int firstEdge = this.path.peek();
+		Point2D.Double sourceNodesCoords = this.adjacencyGraph.getEdgeIdsNode(firstEdge, false);
+		result.add(sourceNodesCoords);
+
+		// Add the remaining edgesIds target nodes to get a list of edge node coordinates
+		for (int edgeId : this.path) {
+			result.add(this.adjacencyGraph.getEdgeIdsNode(edgeId, true));
+		}
+
+		return result;
 	}
 }

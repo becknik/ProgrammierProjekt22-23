@@ -41,8 +41,8 @@ public class GraphReader {
 				readLine = bufferedReader.readLine();
 				final String[] rawValues = readLine.trim().split(" ");
 
-				final double longitude = Double.parseDouble(rawValues[2]);
-				final double latitude = Double.parseDouble(rawValues[3]);
+				final double longitude = Double.parseDouble(rawValues[3]);
+				final double latitude = Double.parseDouble(rawValues[2]);
 
 				// Logging
 				if (AdjacencyGraph.enableLogging)

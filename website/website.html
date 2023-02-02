@@ -45,6 +45,8 @@
 <br>
 
 <script>
+
+
     // TODO find a way how to refactor this into another file...
 
     // Sets the starting view to Stuttgart
@@ -55,6 +57,7 @@
 
     let clicksLatitude;
     let clicksLongitude;
+
 
     // For map onclick popup action & global coords update
     function setGlobalVariableAndPopup(e) {
@@ -73,6 +76,9 @@
     let startingPoint = new Array(2);
     let targetPoint = new Array(2);
 
+    let startingMarker = new L.marker([48, 9]);
+    let targetMarker = new L.marker(48, 9.5);
+
     // For setting textbox value to the with ID of textBoxID for button functionality
     function setTextBox(textBoxID) {
         const formattedCoords = String('(' + clicksLongitude + ", " + clicksLatitude + ')');
@@ -87,9 +93,20 @@
         if (textBoxID === "startingPoint") {
             startingPoint[0] = clicksLongitude;
             startingPoint[1] = clicksLatitude;
+
+            startingMarker.remove();
+            startingMarker = L.marker([clicksLatitude, clicksLongitude])
+                .addTo(map)
+                .bindPopup('<b>Start Point</b>');
+
         } else if (textBoxID === "targetPoint") {
             targetPoint[0] = clicksLongitude;
             targetPoint[1] = clicksLatitude;
+            
+            targetMarker.remove();
+            targetMarker=L.marker([clicksLatitude, clicksLongitude])
+                .addTo(map)
+                .bindPopup('<b>Target Point</b>');
         }
 
         startingPointTextBox.setAttribute("size", formattedCoords.length + "pt");
@@ -122,9 +139,25 @@
 
 
             request.onreadystatechange = function () {
+
                 if ((request.status % 100) === 2) {
                     document.getElementById("AJAXResultTest").innerHTML = "Response received";
-                    console.log(request.responseText);
+                    console.log(request.response);
+
+                    var myLines = request.responseText;
+                    //[{"coordinates":[[9.1623205,48.764806300000004],[9.1620649,48.7648591]],"type":"LineString"}]
+
+
+                    var myStyle = {
+                        "color": "#000000",
+                        "weight": 1,
+                        "opacity": 0.65
+                    };
+
+                    L.geoJSON(myLines, {
+                        style: myStyle
+                    }).addTo(map);
+
                 } else {
                     console.log("ERROR:\tRequest returned status code " + request.status);
                 }
