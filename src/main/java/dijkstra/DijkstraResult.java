@@ -1,11 +1,8 @@
 package dijkstra;
 
-import struct.AdjacencyGraph;
-
 import java.util.ArrayDeque;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+
+import struct.AdjacencyGraph;
 
 /**
  * This class represents the result of a {@code DijkstraAlgorithm}.

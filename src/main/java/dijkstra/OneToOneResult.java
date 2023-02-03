@@ -1,13 +1,12 @@
 package dijkstra;
 
-import org.w3c.dom.Node;
-import struct.AdjacencyGraph;
-
 import java.awt.geom.Point2D;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.function.Predicate;
+
+import struct.AdjacencyGraph;
 
 /**
  * Holds a path object from source to target node, which holds edge ids.
