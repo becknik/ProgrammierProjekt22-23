@@ -15,24 +15,22 @@ public class SortedAdjacencyGraph {
 	 * @param latitude  the latitude coordinate of a node.
 	 * @param nodeId    the Index of the node in the adjacency graph, which was made by reading the textfile.
 	 */
-	public record IndexNode(double longitude, double latitude, int nodeId) implements Comparable {
+	public record IndexNode(double longitude, double latitude, int nodeId) implements Comparable<IndexNode> {
 		@Override
-		public String toString () {
+		public String toString()
+		{
 			return longitude + " " + latitude;
 		}
 
 		@Override
-		public int compareTo (Object o) {
-			if (o instanceof IndexNode node) {
-				if (this.latitude - node.latitude < 0) {
-					return -1;
-				} else if (this.latitude - node.latitude > 0) {
-					return 1;
-				} else {
-					return 0;
-				}
+		public int compareTo(IndexNode node)
+		{
+			if (this.latitude - node.latitude < 0) {
+				return -1;
+			} else if (this.latitude - node.latitude > 0) {
+				return 1;
 			} else {
-				throw new IllegalArgumentException("Compare to only for instances of Node!");
+				return 0;
 			}
 		}
 	}
