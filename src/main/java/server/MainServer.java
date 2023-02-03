@@ -91,13 +91,12 @@ public class MainServer {
 			ArrayList<Point2D.Double> pathInCoordinates =  result.getPathInCoordinates();
 			System.out.println("INFO:\tPath is " + pathInCoordinates.size() + " edges long");
 
-			String geoJSON = this.buildGeoJSONFrom(pathInCoordinates);
-			System.out.println(geoJSON);
+			JSONObject geoJSON = this.buildGeoJSONFrom(pathInCoordinates);
 
-			exchange.sendResponseHeaders(HttpURLConnection.HTTP_ACCEPTED, geoJSON.length());
+			exchange.sendResponseHeaders(HttpURLConnection.HTTP_ACCEPTED, 0);
 
 			try (OutputStream outputStream = exchange.getResponseBody()) {
-				outputStream.write(geoJSON.getBytes());
+				outputStream.write(geoJSON.toString().getBytes());
 			}
 		}
 	};
@@ -130,6 +129,7 @@ public class MainServer {
 		httpServer.createContext("/", this.websiteHandler);
 		httpServer.createContext("/map-setup.js", this.peripheryFileHandler);
 		httpServer.createContext("/style.css", this.peripheryFileHandler);
+		httpServer.createContext("/icons", this.peripheryFileHandler);
 		httpServer.createContext("/src/main/java/server/MainServer.java", this.requestHandler);
 	}
 
@@ -149,7 +149,7 @@ public class MainServer {
 	{
 		Runnable setUpGraph = () -> {
 			System.out.println("INFO:\tStarting graph setup...");
-			File graphSourceFile = new File(System.getProperty("user.dir") + System.getProperty("file.separator") + "stgtregbz.fmi"); // germany.fmi
+			File graphSourceFile = new File(System.getProperty("user.dir") + System.getProperty("file.separator") + "germany.fmi");
 			this.adjacencyGraph = GraphReader.createAdjacencyGraphOf(graphSourceFile);
 			this.sortedAdjacencyGraph = new SortedAdjacencyGraph(this.adjacencyGraph);
 			System.out.println("INFO:\tFinished graph setup");
@@ -184,7 +184,8 @@ public class MainServer {
 		return closestNode.nodeId();
 	}
 
-	private String buildGeoJSONFrom(final ArrayList<Point2D.Double> coordPath) {
+	//string bisher
+	private JSONObject buildGeoJSONFrom(final ArrayList<Point2D.Double> coordPath) {
 		// See https://www.rfc-editor.org/rfc/rfc7946#section-3.1.4
 		JSONObject geoJSON = new JSONObject();
 		JSONArray coordinatesArray = new JSONArray();
@@ -199,10 +200,7 @@ public class MainServer {
 		geoJSON.put("type", "LineString");
 		geoJSON.put("coordinates", coordinatesArray);
 
-		JSONArray geoJSONArray = new JSONArray();
-		geoJSONArray.put(geoJSON);
-
-		return geoJSONArray.toString();
+		return geoJSON;
 	}
 
 	public static void main(String... args)

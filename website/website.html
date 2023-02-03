@@ -76,6 +76,20 @@
     let startingPoint = new Array(2);
     let targetPoint = new Array(2);
 
+    var startIcon = L.icon({
+        // https://cdn-icons-png.flaticon.com/512/2776/2776000.png
+        iconUrl: "/icons/emperor-96px.png",
+        iconSize: [42, 42],
+        iconAnchor: [21, 42]
+    });
+
+    var targetIcon = L.icon({
+        //iconUrl: "https://cdn-icons-png.flaticon.com/512/1363/1363376.png",
+        iconUrl:"/icons/yoda-96px.png",
+        iconSize: [168, 84],
+        iconAnchor: [25, 40]
+    });
+
     let startingMarker = new L.marker([48, 9]);
     let targetMarker = new L.marker(48, 9.5);
 
@@ -95,16 +109,19 @@
             startingPoint[1] = clicksLatitude;
 
             startingMarker.remove();
-            startingMarker = L.marker([clicksLatitude, clicksLongitude])
+            //
+            startingMarker = L.marker(
+                [clicksLatitude, clicksLongitude], {icon: startIcon}
+            )
                 .addTo(map)
                 .bindPopup('<b>Start Point</b>');
 
         } else if (textBoxID === "targetPoint") {
             targetPoint[0] = clicksLongitude;
             targetPoint[1] = clicksLatitude;
-            
+
             targetMarker.remove();
-            targetMarker=L.marker([clicksLatitude, clicksLongitude])
+            targetMarker=L.marker([clicksLatitude, clicksLongitude], {icon: targetIcon})
                 .addTo(map)
                 .bindPopup('<b>Target Point</b>');
         }
@@ -113,11 +130,15 @@
         startingPointTextBox.setAttribute("value", formattedCoords);
     }
 
+    var myLayer = L.geoJSON().addTo(map);
+
     function sendCoordinates() {
         const messageFiled = document.getElementById("infoMessage");
         // Resetting previous error messages
         messageFiled.setAttribute("style","color:black");
         messageFiled.innerHTML = "";
+
+        //L.geoJSON.remove();
 
         if (startingPoint != null && targetPoint != null) {
             // Maybe switch to jQuery?
@@ -142,21 +163,27 @@
 
                 if ((request.status % 100) === 2) {
                     document.getElementById("AJAXResultTest").innerHTML = "Response received";
-                    console.log(request.response);
 
-                    var myLines = request.responseText;
-                    //[{"coordinates":[[9.1623205,48.764806300000004],[9.1620649,48.7648591]],"type":"LineString"}]
-
+                    var shortestGeoJSONPath = JSON.parse(request.responseText);
 
                     var myStyle = {
-                        "color": "#000000",
-                        "weight": 1,
-                        "opacity": 0.65
+                        "color": "#852bd9",
+                        "weight": 3,
+                        "opacity": 1
                     };
 
-                    L.geoJSON(myLines, {
+                    myLayer.remove();
+                    myLayer = L.geoJSON(shortestGeoJSONPath, {
                         style: myStyle
                     }).addTo(map);
+
+                    //myLayer.addData(geoJSON(shortestGeoJSONPath, {style: myStyle}));
+
+
+                    /*L.geoJSON(shortestGeoJSONPath, {
+                        style: myStyle
+                    }).addTo(map);
+                     */
 
                 } else {
                     console.log("ERROR:\tRequest returned status code " + request.status);
