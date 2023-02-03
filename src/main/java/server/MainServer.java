@@ -3,7 +3,6 @@ package server;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import dijkstra.DijkstraAlgorithm;
-import dijkstra.DijkstraResult;
 import dijkstra.OneToOneResult;
 import loader.GraphReader;
 import org.json.JSONArray;
@@ -15,165 +14,156 @@ import java.awt.geom.Point2D;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
-import java.net.URI;
-import java.util.ArrayDeque;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.HashSet;
 
 public class MainServer {
-	private final HttpHandler websiteHandler = exchange -> {
-		//System.out.println(exchange.getRequestHeaders()); // Let's see, what this prints out
-		// The heck is getRequestBody() for?
-		//exchange.getRequestBody().readAllBytes() seems to be empty
-
-		exchange.sendResponseHeaders(HttpURLConnection.HTTP_OK, 0); // Variable length response is to be sent
-
-		File website = new File(System.getProperty("user.dir") + "/website/website.html");
-		FileInputStream websiteStream = new FileInputStream(website);
-
-		OutputStream responseStream = exchange.getResponseBody();
-		responseStream.write(websiteStream.readAllBytes());
-
-		responseStream.close();
-		websiteStream.close();
-	};
-
-	private final HttpHandler peripheryFileHandler = exchange -> {
-		exchange.sendResponseHeaders(HttpURLConnection.HTTP_OK, 0);
-
-		URI request = exchange.getRequestURI();
-
-		// H
-		File peripheryFile = new File(System.getProperty("user.dir") + "/website" + request.getPath());
-		FileInputStream websiteStream = new FileInputStream(peripheryFile);
-
-		OutputStream responseStream = exchange.getResponseBody();
-		responseStream.write(websiteStream.readAllBytes());
-
-		responseStream.close();
-		websiteStream.close();
-	};
-
-	private final HttpHandler requestHandler = exchange -> {
-		System.out.println("INFO:\tReceived request by client:" + exchange.getRequestMethod());
-
-		// If receives request & graph structure is currently not set up, a error response is sent
-		if (this.adjacencyGraph == null) {
-			System.out.println("ERROR:\tServer received request while setting up AdjacencyGraph");
-			exchange.sendResponseHeaders(HttpURLConnection.HTTP_BAD_REQUEST, 0);
-
-			OutputStream outputStream = exchange.getResponseBody();
-			byte[] responseMessage = "The server has not finished the setup of the underlying graph file. Please wait some time".getBytes();
-			outputStream.write(responseMessage);
-			outputStream.close();
-
-		} else {
-			// Get request body string content
-			String requestBodyMessage = null;
-			try (InputStream inputStream = exchange.getRequestBody()) {
-				byte[] requestBody = inputStream.readAllBytes();
-				requestBodyMessage = new String(requestBody);
-			}
-
-			// Create wrapper object which parses the nested JSON input to further JSON objects
-			JSONObject requestJSON = new JSONObject(requestBodyMessage);
-
-			// Unnesting JSON structure by creating object containing starting long,lat from the nested one
-			JSONObject startChoords = requestJSON.getJSONObject("start");
-			int startNodeId = this.getNearestNodeIdFrom(startChoords);
-
-			JSONObject targetChoords = requestJSON.getJSONObject("target");
-			int targetNodeId = this.getNearestNodeIdFrom(targetChoords);
-
-			OneToOneResult result = (OneToOneResult)
-					DijkstraAlgorithm.dijkstra(this.adjacencyGraph, startNodeId, targetNodeId);
-
-			ArrayList<Point2D.Double> pathInCoordinates =  result.getPathInCoordinates();
-			System.out.println("INFO:\tPath is " + pathInCoordinates.size() + " edges long");
-
-			JSONObject geoJSON = this.buildGeoJSONFrom(pathInCoordinates);
-
-			exchange.sendResponseHeaders(HttpURLConnection.HTTP_ACCEPTED, 0);
-
-			try (OutputStream outputStream = exchange.getResponseBody()) {
-				outputStream.write(geoJSON.toString().getBytes());
-			}
-		}
-	};
-
 	private final HttpServer httpServer;
 	private AdjacencyGraph adjacencyGraph;
 	private SortedAdjacencyGraph sortedAdjacencyGraph;
+	private File websiteRootDirectory;
 
 	public MainServer()
 	{
-        /*
-        All simultaneous requests will be queued by the operating system.
-        However, the operating system will decide how many of these requests can be queued at any given point in time.
-        This value represents back logging.
-         */
-
 		HttpServer httpServerButMaybeNot; // For final attribute initialization
-
 		try {
 			InetSocketAddress socketAddress = new InetSocketAddress(8080);
 			httpServerButMaybeNot = HttpServer.create(socketAddress, 0); // OS default backlogging queue length
 		} catch (IOException e) {
-			System.err.println("Failed to create new HttpServer instance listening on localhost");
 			httpServerButMaybeNot = null;
+
+			System.err.println("Failed to create new HttpServer instance listening on localhost");
 			e.printStackTrace();
 		}
-		this.httpServer = httpServerButMaybeNot;
+		this.httpServer = httpServerButMaybeNot; // Sometimes I hate Java...
 
-		System.out.println("INFO:\tSetting website context handler...");
-		httpServer.createContext("/", this.websiteHandler);
-		httpServer.createContext("/map-setup.js", this.peripheryFileHandler);
-		httpServer.createContext("/style.css", this.peripheryFileHandler);
-		httpServer.createContext("/icons", this.peripheryFileHandler);
-		httpServer.createContext("/src/main/java/server/MainServer.java", this.requestHandler);
+		this.websiteRootDirectory = new File(System.getProperty("user.dir") + "/website");
+
+		httpServer.createContext("/", this.metaHandler);
+		System.out.println("INFO:\tFinished constructing server");
 	}
 
 	/**
-	 * Simply calls start on the server & prints out a info message :)
+	 * Distributes the exchange Http-method wise to sub-handlers.
+	 * Because me being sick of making a subdomain for every single request made by the website, I decided to go for a
+	 * "subdomain per Http method" approach. This just makes more sense & is more appealing to me, personally...
 	 */
-	public void start()
-	{
-		System.out.println("INFO:\tStarting Java HttpServer...");
-		this.httpServer.start();
-	}
+	private final HttpHandler metaHandler = exchange -> {
+
+		switch (exchange.getRequestMethod()) {
+			case "GET" -> this.websiteFilesHandler.handle(exchange);
+			case "PUT" -> this.updateHandler.handle(exchange);
+			default -> {
+				System.err.println("ERROR:\tClient used http protocol method \"" + exchange.getRequestMethod() +
+						"\" which semantic was not meant to be implemented into this server...");
+				exchange.sendResponseHeaders(HttpURLConnection.HTTP_NOT_IMPLEMENTED, -1);
+			}
+		}
+	};
 
 	/**
-	 * Creates a background thread executing the GraphReader.read() method. The generated adjacencyGraph is set to this classes {@code this.adjacencyGraph} reference
+	 * Handles all website related Http GET file request. Maps the requests to the server root's "website" subfolder.
+	 * If the root itself is requested on connection to the server, the website.html is returned. Handles errors.
+	 * Makes use of {@code websiteRootDirectory}.
 	 */
-	private void setUpGraph()
-	{
-		Runnable setUpGraph = () -> {
-			System.out.println("INFO:\tStarting graph setup...");
-			File graphSourceFile = new File(System.getProperty("user.dir") + System.getProperty("file.separator") + "germany.fmi");
-			this.adjacencyGraph = GraphReader.createAdjacencyGraphOf(graphSourceFile);
-			this.sortedAdjacencyGraph = new SortedAdjacencyGraph(this.adjacencyGraph);
-			System.out.println("INFO:\tFinished graph setup");
+	private final HttpHandler websiteFilesHandler = exchange -> {
+		assert "GET".equals(exchange.getRequestMethod());
 
-			assert this.adjacencyGraph != null;
-			assert this.sortedAdjacencyGraph != null;
-		};
+		String requestedURI = exchange.getRequestURI().toString();
+		String targetFileName = ("/".equals(requestedURI)) ? "website.html" : requestedURI;
 
-		new Thread(setUpGraph).start();
-	}
+		File fileToHandle = new File(this.websiteRootDirectory, targetFileName);
+
+		try (
+				FileInputStream websiteStream = new FileInputStream(fileToHandle);
+				OutputStream responseBody = exchange.getResponseBody()
+		) {
+			exchange.sendResponseHeaders(HttpURLConnection.HTTP_OK, 0); // Variable response length
+			responseBody.write(websiteStream.readAllBytes());
+		} catch (FileNotFoundException e) {
+			exchange.sendResponseHeaders(HttpURLConnection.HTTP_BAD_REQUEST, 0);
+
+			System.err.println("ERROR:\tThe by client specified file \"" + targetFileName + "\" was not found on the webservers root");
+			// Do not terminate this thread
+		} catch (IOException e) {
+			System.err.println("ERROR:\tFailed to open output stream from file stream \"" + fileToHandle);
+			e.printStackTrace();
+		}
+	};
 
 
 	/**
-	 * Returns the node id of the nearest node to the specified {@link JSONObject}, which must contain a coordinate formatted
-	 * as "long:" and "lat:".
+	 * This handler is meant to manage update requests to website content & error handling, if the internal state is
+	 * problematic. If this server receives a computation request on the  graph structures & it's currently not set up,
+	 * this handler minds the business.
+	 */
+	private final HttpHandler updateHandler = exchange -> {
+		if (this.sortedAdjacencyGraph == null) {
+			System.out.println("WARNING:\tServer received request computation during setup process of graph files");
+
+			String response = "ERROR: Could not process request due to server graph setup not being finished.";
+
+			exchange.sendResponseHeaders(HttpURLConnection.HTTP_INTERNAL_ERROR, response.length());
+			try (OutputStream responseBody = exchange.getResponseBody()) {
+				responseBody.write(response.getBytes());
+			}
+		} else {
+			this.dijkstraHandler.handle(exchange);
+		}
+	};
+
+	/**
+	 * Parses the requests JSON, calculates the nearest nodes form it, then throws on the dijkstra algorithm just to
+	 * send the GeoJSON-encoded list of coordinate-tuples back to the front end.
+	 * The requests JSON string must contain a wrapper object containing two tuple objects. Every tuple object must
+	 * declare "lat" & "long" double member.
+	 */
+	private final HttpHandler dijkstraHandler = exchange -> {
+
+		String requestBodyMessage;
+		try (InputStream inputStream = exchange.getRequestBody()) {
+			byte[] requestBody = inputStream.readAllBytes();
+			requestBodyMessage = new String(requestBody);
+		}
+
+		// Create wrapper object which parses the nested JSON string input (containing two 2-tuples) to a JSON objects
+		JSONObject requestJSON = new JSONObject(requestBodyMessage);
+
+		// Un-nesting JSON structure by creating object containing starting long,lat from the nested one
+		JSONObject startCoords = requestJSON.getJSONObject("start");
+		int startNodeId = this.getNearestNodeIdFrom(startCoords);
+
+		JSONObject targetCoords = requestJSON.getJSONObject("target");
+		int targetNodeId = this.getNearestNodeIdFrom(targetCoords);
+
+		OneToOneResult result =
+				(OneToOneResult) DijkstraAlgorithm.dijkstra(this.adjacencyGraph, startNodeId, targetNodeId);
+
+		// Convert the path consisting of edge ids to a path containing coordinates
+		ArrayList<Point2D.Double> pathInCoordinates = result.getPathInCoordinates();
+		System.out.println("INFO:\tPath is " + pathInCoordinates.size() + " edges long");
+
+		JSONObject geoJSON = this.buildGeoJSONFrom(pathInCoordinates);
+		byte[] geoJSONString = geoJSON.toString().getBytes(StandardCharsets.UTF_8);
+
+		exchange.sendResponseHeaders(HttpURLConnection.HTTP_ACCEPTED, geoJSONString.length);
+		try (OutputStream responseBody = exchange.getResponseBody()) {
+			responseBody.write(geoJSONString);
+		}
+	};
+
+	/**
+	 * Returns the node id of the nearest node to the specified {@link JSONObject}, which must contain a coordinate
+	 * formatted as "long:" and "lat:".
 	 * Uses the local classes' {@link SortedAdjacencyGraph} instance for this.
 	 *
-	 * @param jsonChoords Containint "long:" and "lat:" with following double primitives
+	 * @param jsonCoords Containing "long:" and "lat:" with following double
 	 * @return The ID of the closest node
 	 */
-	private int getNearestNodeIdFrom(final JSONObject jsonChoords)
+	private int getNearestNodeIdFrom(final JSONObject jsonCoords)
 	{
-		double longitude = jsonChoords.getDouble("long");
-		double latitude = jsonChoords.getDouble("lat");
+		double longitude = jsonCoords.getDouble("long");
+		double latitude = jsonCoords.getDouble("lat");
 
 		System.out.println("INFO:\t\tParsed (" + longitude + ',' + latitude + ") from JSON Object");
 
@@ -184,13 +174,14 @@ public class MainServer {
 		return closestNode.nodeId();
 	}
 
-	//string bisher
-	private JSONObject buildGeoJSONFrom(final ArrayList<Point2D.Double> coordPath) {
+	// string bisher
+	private JSONObject buildGeoJSONFrom(final ArrayList<Point2D.Double> coordsPath)
+	{
 		// See https://www.rfc-editor.org/rfc/rfc7946#section-3.1.4
 		JSONObject geoJSON = new JSONObject();
 		JSONArray coordinatesArray = new JSONArray();
 
-		for (var coordinate : coordPath) {
+		for (var coordinate : coordsPath) {
 			JSONArray pointAsArray = new JSONArray();
 			pointAsArray.put(coordinate.getX());
 			pointAsArray.put(coordinate.getY());
@@ -203,11 +194,39 @@ public class MainServer {
 		return geoJSON;
 	}
 
+
+	/**
+	 * Simply calls start on the server, starts the graph structure setup process & prints out an info message :)
+	 */
+	public void start()
+	{
+		System.out.println("INFO:\tStarting Java HttpServer...");
+		this.httpServer.start();
+
+		this.setUpGraph();
+	}
+
+	/**
+	 * Creates a background thread executing the GraphReader.read() method. The
+	 * generated adjacencyGraph is set to this classes {@code this.adjacencyGraph}
+	 * reference
+	 */
+	private void setUpGraph()
+	{
+		Runnable setUpGraph = () -> {
+			System.out.println("INFO:\tStarting graph setup...");
+			File graphSourceFile = new File(
+					System.getProperty("user.dir") + System.getProperty("file.separator") + "germany.fmi");
+			this.adjacencyGraph = GraphReader.createAdjacencyGraphOf(graphSourceFile);
+			this.sortedAdjacencyGraph = new SortedAdjacencyGraph(this.adjacencyGraph);
+			System.out.println("INFO:\tFinished graph setup");
+		};
+
+		new Thread(setUpGraph).start();
+	}
+
 	public static void main(String... args)
 	{
-		MainServer server = new MainServer();
-
-		server.setUpGraph();
-		server.start();
+		new MainServer().start();
 	}
 }
