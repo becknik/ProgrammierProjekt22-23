@@ -15,49 +15,90 @@
             integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM="
             crossorigin></script>
 
-    <script type="text/javascript" src="map-setup.js"></script>
-    <!-- TODO <script type="text/javascript" src="website-interaction.js"></script> -->
+    <script src="entities.js" type="text/javascript"></script>
+    <script src="map-setup.js" type="text/javascript"></script>
+    <script src="website-interaction.js" type="text/javascript"></script>
 </head>
 <body>
-<h1>Dijkstra Navigation</h1>
+<h1 class="title">Dijkstra Navigation</h1>
 
-<div id="map" onload="setupMapContents()">It's a map</div>
+<div id="map">It should be a map</div>
 
-<hr>
+<h2 class="title">Coordinates</h2>
+<p>Please select the target & source coordinates on the map.</p>
 
-<h2>Coordinates</h2>
-<p>Please enter your start and target coordinates below or just select points on the map.</p>
-
-<div class="userInput">
-    <label>Starting Point:</label>
-    <input type="text" id="startingPoint">
-    <input type="button" value="Set" onclick="setTextBox('startingPoint')"/>
+<div class="coordinatesSection">
+    <label>Starting Point:</label><br>
+    <div class="coordinateSet">
+        <input type="text" id="startingPoint">
+        <input type="button" value="Set" onclick="setTextBox('startingPoint')"/>
+    </div>
 </div>
 
-<div class="userInput">
-    <label>Target Point:</label>
-    <input type="text" id="targetPoint">
-    <input type="button" value="Set" onclick="setTextBox('targetPoint')"/>
+<div class="coordinatesSection">
+    <label>Target Point:</label><br>
+    <div class="coordinateSet">
+        <input type="text" id="targetPoint">
+        <input type="button" value="Set" onclick="setTextBox('targetPoint')"/>
+    </div>
 </div>
-<input type="button" value="Dijkstrulate" onclick="sendCoordinates()"><label id="infoMessage"></label>
-<br>
-<label id="AJAXResultTest"></label>
-<br>
+<div style="text-align: center; margin-top: 3em">
+    <input type="button" value="Dijkstrulate" class="sendButton" onclick="sendCoordinates()">
+</div>
+
+<hr style="margin-top: 1em; margin-bottom: 1em">
+
+<h3 class="title">Settings</h3>
+<label for="enableStarWars">
+    <input type="checkbox" id="enableStarWars" onclick="switchTheme()">Enable Star Wars Theming
+</label><br>
+<label for="enableStarWars">
+    <input type="checkbox" id="showCoordinatesPopup" onclick="toggleCoordinatePopup()">Enable Coordinates Popup on Selection
+</label>
+
+
+<hr style="margin-top: 2em; margin-bottom: 2em">
+
+<div class="statusMessage">
+    Server Status: <label id="serverStatusMessage" ></label>
+    <input type="button" value="Refresh" onclick="getServerStatus()"><br>
+    Website Status: <label id="websiteStatusMessage"></label>
+</div>
 
 <script>
-
-
-    // TODO find a way how to refactor this into another file...
-
     // Sets the starting view to Stuttgart
     const map = L.map('map').setView([48.783333, 9.183333], 11);
 
     // Calls function from map-setup.js to set up the basic map contents
     setupMapContents();
 
+    document.addEventListener("DOMContentLoaded", getServerStatus);
+
+    function getServerStatus() {
+        const request = new XMLHttpRequest();
+        request.open("GET", "ServerStatus");
+        request.setRequestHeader("Accept", "text");
+        request.setRequestHeader("Accept", "utf-8");
+        request.send();
+
+        request.onreadystatechange = function () {
+            const serverStatusField = document.getElementById("serverStatusMessage");
+            if ((request.status % 100) === 2) {
+                serverStatusField.setAttribute("style", "color:green");
+            } else {
+                serverStatusField.setAttribute("style", "color:red");
+                // TODO Periodical requests? Async server response?
+            }
+            serverStatusField.innerHTML = request.responseText;
+        }
+    }
+
+    // -------------------------------------------------------------------------
+
     let clicksLatitude;
     let clicksLongitude;
 
+    map.on('click', setGlobalVariableAndPopup);
 
     // For map onclick popup action & global coords update
     function setGlobalVariableAndPopup(e) {
@@ -65,33 +106,51 @@
         clicksLongitude = e.latlng.lng;
         clicksLatitude = e.latlng.lat;
 
-        L.popup()
-            .setLatLng(e.latlng)
-            .setContent("Longitude: " + clicksLongitude + "<br>Latitude: " + clicksLatitude)
-            .openOn(map);
+        if (document.querySelector('#showCoordinatesPopup').checked) {
+            L.popup()
+                .setLatLng(e.latlng)
+                .setContent("Longitude: " + clicksLongitude + "<br>Latitude: " + clicksLatitude)
+                .openOn(map);
+        } else {
+            L.popup().setLatLng(e.latlng).setContent("Selection").openOn(map);
+        }
     }
 
-    map.on('click', setGlobalVariableAndPopup);
+    // -------------------------------------------------------------------------
+
+    let startingMarker = new L.marker();
+    let targetMarker = new L.marker();
 
     let startingPoint = new Array(2);
     let targetPoint = new Array(2);
 
-    var startIcon = L.icon({
-        // https://cdn-icons-png.flaticon.com/512/2776/2776000.png
-        iconUrl: "/icons/emperor-96px.png",
-        iconSize: [42, 42],
-        iconAnchor: [21, 42]
-    });
+    let startIcon = defaultStartIcon;
+    let targetIcon = defaultTargetIcon;
 
-    var targetIcon = L.icon({
-        //iconUrl: "https://cdn-icons-png.flaticon.com/512/1363/1363376.png",
-        iconUrl:"/icons/yoda-96px.png",
-        iconSize: [168, 84],
-        iconAnchor: [25, 40]
-    });
+    function switchTheme() {
+        if (document.querySelector('#enableStarWars').checked) {
+            startIcon = emperorIcon;
+            targetIcon = yodaIcon;
 
-    let startingMarker = new L.marker([48, 9]);
-    let targetMarker = new L.marker(48, 9.5);
+            uniStuttgart.remove();
+            jediUniStuttgart.addTo(map)
+                .bindPopup('<b>Universität Vaihingen</b>');
+
+            janniksHome.remove();
+            mustafaHome.addTo(map)
+                .bindPopup('<b>Jannik\'s Home</b>');
+        } else {
+            startIcon = defaultStartIcon;
+            targetIcon = defaultTargetIcon;
+
+            jediUniStuttgart.remove();
+            uniStuttgart.addTo(map)
+                .bindPopup('<b>Universität Vaihingen</b>');
+            mustafaHome.remove();
+            janniksHome.addTo(map)
+                .bindPopup('<b>Jannik\'s Home</b>');
+        }
+    }
 
     // For setting textbox value to the with ID of textBoxID for button functionality
     function setTextBox(textBoxID) {
@@ -99,17 +158,11 @@
 
         const startingPointTextBox = document.getElementById(textBoxID);
 
-        // TODO
-        // const startPointTextBoxValue = startingPointTextBox.getAttribute("value");
-        // Case: User entered some coords into text box
-        // Case:  User did not change text box & maybe selected another point on the map?
-
         if (textBoxID === "startingPoint") {
             startingPoint[0] = clicksLongitude;
             startingPoint[1] = clicksLatitude;
 
             startingMarker.remove();
-            //
             startingMarker = L.marker(
                 [clicksLatitude, clicksLongitude], {icon: startIcon}
             )
@@ -121,79 +174,69 @@
             targetPoint[1] = clicksLatitude;
 
             targetMarker.remove();
-            targetMarker=L.marker([clicksLatitude, clicksLongitude], {icon: targetIcon})
+            targetMarker = L.marker([clicksLatitude, clicksLongitude], {icon: targetIcon})
                 .addTo(map)
                 .bindPopup('<b>Target Point</b>');
         }
 
-        startingPointTextBox.setAttribute("size", formattedCoords.length + "pt");
+        startingPointTextBox.setAttribute("size", formattedCoords.length *.825 + "pt");
         startingPointTextBox.setAttribute("value", formattedCoords);
     }
 
-    var myLayer = L.geoJSON().addTo(map);
+    // -------------------------------------------------------------------------
+
+    let geoJSONLayer = L.geoJSON().addTo(map);
+    const serverStatusFiled = document.getElementById("serverStatusMessage");
+    const websiteStausField = document.getElementById("websiteStatusMessage");
 
     function sendCoordinates() {
-        const messageFiled = document.getElementById("infoMessage");
         // Resetting previous error messages
-        messageFiled.setAttribute("style","color:black");
-        messageFiled.innerHTML = "";
+        websiteStausField.setAttribute("style", "color:black");
+        websiteStausField.innerHTML = "";
 
-        //L.geoJSON.remove();
-
-        if (startingPoint != null && targetPoint != null) {
-            // Maybe switch to jQuery?
+        if (startingPoint[0] != null && targetPoint[0] != null) {
             let request = new XMLHttpRequest();
 
-            request.open("PUT", "/src/main/java/server/MainServer.java"); // TODO Maybe use another name here
+            request.open("PUT", "ShortestPath");
             request.setRequestHeader("Accept", "application/json");
             request.setRequestHeader("Accept", "utf-8");
-            const jsonString = '{\n' +
-                '"start": {\n' +
-                '"long": ' + startingPoint[0] + ',\n' +
-                '"lat": ' + startingPoint[1] + ',\n' +
-                '},\n' +
-                '"target": {\n' +
-                '"long": ' + targetPoint[0] + ',\n' +
-                '"lat": ' + targetPoint[1] + ',\n' +
+
+            const jsonString = '{' +
+                '"start": {' +
+                '"long": ' + startingPoint[0] + ',' +
+                '"lat": ' + startingPoint[1] + ',' +
+                '},' +
+                '"target": {' +
+                '"long": ' + targetPoint[0] + ',' +
+                '"lat": ' + targetPoint[1] + ',' +
                 '}\n}';
             request.send(jsonString);
 
-
             request.onreadystatechange = function () {
-
                 if ((request.status % 100) === 2) {
-                    document.getElementById("AJAXResultTest").innerHTML = "Response received";
-
-                    var shortestGeoJSONPath = JSON.parse(request.responseText);
+                    const shortestGeoJSONPath = JSON.parse(request.responseText);
 
                     var myStyle = {
                         "color": "#852bd9",
                         "weight": 3,
                         "opacity": 1
                     };
-
-                    myLayer.remove();
-                    myLayer = L.geoJSON(shortestGeoJSONPath, {
+                    geoJSONLayer.remove();
+                    geoJSONLayer = L.geoJSON(shortestGeoJSONPath, {
                         style: myStyle
                     }).addTo(map);
-
-                    //myLayer.addData(geoJSON(shortestGeoJSONPath, {style: myStyle}));
-
-
-                    /*L.geoJSON(shortestGeoJSONPath, {
-                        style: myStyle
-                    }).addTo(map);
-                     */
-
                 } else {
                     console.log("ERROR:\tRequest returned status code " + request.status);
+                    console.log(request.responseText);
+                    serverStatusFiled.innerHTML = request.responseText;
                 }
             }
         } else {
-            console.log("ERROR:\tCurrent coordinates are not defined.");
+            const errorMessage = "ERROR:\tPlease set start & target point before Dijkstrulating!";
 
-            messageFiled.setAttribute("style", "color:red");
-            messageFiled.innerHTML = "<b>\tERROR:\tPlease set start & target point before Dijkstrulating!</b>";
+            websiteStausField.setAttribute("style", "color:red");
+            websiteStausField.innerHTML = errorMessage;
+            console.log(errorMessage);
         }
     }
 </script>

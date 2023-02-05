@@ -17,13 +17,16 @@ import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
-public class MainServer {
+public class DijkstraServer {
 	private final HttpServer httpServer;
+
+	final File graphFile;
 	private AdjacencyGraph adjacencyGraph;
 	private SortedAdjacencyGraph sortedAdjacencyGraph;
+	private boolean graphResourcesReady;
 	private File websiteRootDirectory;
 
-	public MainServer()
+	public DijkstraServer(final File graphFile)
 	{
 		HttpServer httpServerButMaybeNot; // For final attribute initialization
 		try {
@@ -37,9 +40,13 @@ public class MainServer {
 		}
 		this.httpServer = httpServerButMaybeNot; // Sometimes I hate Java...
 
-		this.websiteRootDirectory = new File(System.getProperty("user.dir") + "/website");
+		this.graphFile = graphFile;
 
+		this.websiteRootDirectory = new File(System.getProperty("user.dir") + "/website");
 		httpServer.createContext("/", this.metaHandler);
+
+		this.graphResourcesReady = false;
+
 		System.out.println("INFO:\tFinished constructing server");
 	}
 
@@ -51,7 +58,7 @@ public class MainServer {
 	private final HttpHandler metaHandler = exchange -> {
 
 		switch (exchange.getRequestMethod()) {
-			case "GET" -> this.websiteFilesHandler.handle(exchange);
+			case "GET" -> this.retrieveHandler.handle(exchange);
 			case "PUT" -> this.updateHandler.handle(exchange);
 			default -> {
 				System.err.println("ERROR:\tClient used http protocol method \"" + exchange.getRequestMethod() +
@@ -61,13 +68,40 @@ public class MainServer {
 		}
 	};
 
+	private final HttpHandler retrieveHandler = exchange -> {
+		assert "GET".equals(exchange.getRequestMethod());
+
+		String URI = exchange.getRequestURI().toString();
+		if (URI.equals("/ServerStatus")) {
+			this.statusHandler.handle(exchange);
+		} else {
+			this.websiteFilesHandler.handle(exchange);
+		}
+	};
+
+	private final HttpHandler statusHandler = exchange -> {
+		assert exchange.getRequestURI().toString().equals("/ServerStatus");
+
+		String statusMessage;
+		if (this.graphResourcesReady) {
+			statusMessage = "Server resources ready";
+			exchange.sendResponseHeaders(HttpURLConnection.HTTP_ACCEPTED, statusMessage.length());
+		} else {
+			statusMessage = "Server is busy setting up the graph entities for later shortest path computation. Please wait...";
+			exchange.sendResponseHeaders(HttpURLConnection.HTTP_UNAVAILABLE, statusMessage.length());
+		}
+
+		try (OutputStream responseBody = exchange.getResponseBody()) {
+			responseBody.write(statusMessage.getBytes());
+		}
+	};
+
 	/**
 	 * Handles all website related Http GET file request. Maps the requests to the server root's "website" subfolder.
 	 * If the root itself is requested on connection to the server, the website.html is returned. Handles errors.
 	 * Makes use of {@code websiteRootDirectory}.
 	 */
 	private final HttpHandler websiteFilesHandler = exchange -> {
-		assert "GET".equals(exchange.getRequestMethod());
 
 		String requestedURI = exchange.getRequestURI().toString();
 		String targetFileName = ("/".equals(requestedURI)) ? "website.html" : requestedURI;
@@ -98,7 +132,7 @@ public class MainServer {
 	 * this handler minds the business.
 	 */
 	private final HttpHandler updateHandler = exchange -> {
-		if (this.sortedAdjacencyGraph == null) {
+		if (!this.graphResourcesReady) {
 			System.out.println("WARNING:\tServer received request computation during setup process of graph files");
 
 			String response = "ERROR: Could not process request due to server graph setup not being finished.";
@@ -136,8 +170,7 @@ public class MainServer {
 		JSONObject targetCoords = requestJSON.getJSONObject("target");
 		int targetNodeId = this.getNearestNodeIdFrom(targetCoords);
 
-		OneToOneResult result =
-				(OneToOneResult) DijkstraAlgorithm.dijkstra(this.adjacencyGraph, startNodeId, targetNodeId);
+		OneToOneResult result = (OneToOneResult) DijkstraAlgorithm.dijkstra(this.adjacencyGraph, startNodeId, targetNodeId);
 
 		// Convert the path consisting of edge ids to a path containing coordinates
 		ArrayList<Point2D.Double> pathInCoordinates = result.getPathInCoordinates();
@@ -215,10 +248,10 @@ public class MainServer {
 	{
 		Runnable setUpGraph = () -> {
 			System.out.println("INFO:\tStarting graph setup...");
-			File graphSourceFile = new File(
-					System.getProperty("user.dir") + System.getProperty("file.separator") + "germany.fmi");
-			this.adjacencyGraph = GraphReader.createAdjacencyGraphOf(graphSourceFile);
+			this.adjacencyGraph = GraphReader.createAdjacencyGraphOf(this.graphFile);
 			this.sortedAdjacencyGraph = new SortedAdjacencyGraph(this.adjacencyGraph);
+
+			this.graphResourcesReady = true;
 			System.out.println("INFO:\tFinished graph setup");
 		};
 
@@ -227,6 +260,9 @@ public class MainServer {
 
 	public static void main(String... args)
 	{
-		new MainServer().start();
+		String graphPath = args[0];
+		File graphFile = new File(graphPath);
+
+		new DijkstraServer(graphFile).start();
 	}
 }

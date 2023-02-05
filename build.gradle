@@ -32,6 +32,8 @@ run {
 
 test {
     useJUnitPlatform()
+    // Enable preview features like pattern matching for tests
+    jvmArgs(['--enable-preview'])
 
     testLogging {
         // Sources: https://docs.gradle.org/current/javadoc/org/gradle/api/tasks/testing/logging/TestLoggingContainer.html

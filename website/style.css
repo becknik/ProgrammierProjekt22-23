@@ -1,7 +1,45 @@
-#map {
-    height: 400px;
+html {
+    width: 90vw;
+    padding-left: 5%;
+    font-family: "Fira Code", "Courier New", serif;
+    user-select: none;
+    -webkit-user-select: none; /* Safari */
 }
-.userInput {
+p {
+    text-align: center;
+}
+button {
+    font-size: large;
+    text-align: center;
+}
+#map {
+    height: 50vh;
+}
+.prevent-select {
+}
+.title {
+    text-align: center;
+    font-family: "Fira Code", "Courier New", serif;
+    text-decoration: underline;
+}
+.title:hover {
+    text-decoration-style: wavy;
+    text-decoration-color: red;
+}
+.coordinatesSection {
     width: 50%;
     float: left;
+}
+.coordinateSet {
+    text-align: center;
+}
+.sendButton {
+    width: 20%;
+    height: 3em;
+}
+.statusMessage {
+    font-family: serif;
+    font-size: small;
+    user-select: all;
+    -webkit-user-select: text; /* Safari */
 }
