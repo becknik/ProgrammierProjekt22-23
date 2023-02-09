@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'application'
+    //id 'application'
 }
 
 group 'org.example'
@@ -22,11 +22,25 @@ compileJava {
     targetCompatibility = '17'
 }
 
+/* Might help in future projects?
 application {
     mainClass = 'server.DijkstraServer'
 }
-
 run {
+    standardInput = System.in
+}
+*/
+
+tasks.register('runDijkstraServer', JavaExec) {
+    dependsOn 'classes'
+    main= 'server.DijkstraServer'
+    classpath = sourceSets.main.runtimeClasspath
+}
+
+tasks.register('runTestBenchmark', JavaExec) {
+    dependsOn 'classes'
+    main= 'execution.Benchmark'
+    classpath = sourceSets.main.runtimeClasspath
     standardInput = System.in
 }
 
