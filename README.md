@@ -11,8 +11,9 @@ Therefore, as you can see, your website design is kind of functional.
 The use of JavaScript nearly drove us to insanity & I'd be glad if I can leave my fingers off this piece of garbage language from now on. :^)
 
 ![A preview of our websites](./preview-pictures/priview.png)
-![What happens when Dijkstrulating & Server not being set up:](./preview-pictures/preview-server-status-message.png)
+---
 ![Unlimited POWER!!! mode preview](./preview-pictures/preview-star-wars-mode.png)
+![What happens when Dijkstrulating & Server not being set up:](./preview-pictures/preview-server-status-message.png)
 
 ## Copyright statement
 
