@@ -258,6 +258,12 @@ public class DijkstraServer {
 		new Thread(setUpGraph).start();
 	}
 
+	/**
+	 * Starts a DijkstraServer using the .fmi graph file specified as first argument of this method.
+	 * The graph file string is converted to the {@code File} Type & passed to the servers constructor.
+	 *
+	 * @param args First argument must be the graph file path
+	 */
 	public static void main(String... args)
 	{
 		String graphPath = args[0];
