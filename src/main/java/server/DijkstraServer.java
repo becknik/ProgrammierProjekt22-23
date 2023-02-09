@@ -16,6 +16,7 @@ import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Objects;
 
 public class DijkstraServer {
 	private final HttpServer httpServer;
@@ -28,6 +29,9 @@ public class DijkstraServer {
 
 	public DijkstraServer(final File graphFile)
 	{
+		Objects.requireNonNull(graphFile, "Provided file path is invalid");
+		this.graphFile = graphFile;
+
 		HttpServer httpServerButMaybeNot; // For final attribute initialization
 		try {
 			InetSocketAddress socketAddress = new InetSocketAddress(8080);
@@ -39,8 +43,6 @@ public class DijkstraServer {
 			e.printStackTrace();
 		}
 		this.httpServer = httpServerButMaybeNot; // Sometimes I hate Java...
-
-		this.graphFile = graphFile;
 
 		this.websiteRootDirectory = new File(System.getProperty("user.dir") + "/website");
 		httpServer.createContext("/", this.metaHandler);
@@ -267,8 +269,10 @@ public class DijkstraServer {
 	public static void main(String... args)
 	{
 		String graphPath = args[0];
+		Objects.requireNonNull(args, "No path specified. This server needs a path to a .fmi file for starting.");
 		File graphFile = new File(graphPath);
 
-		new DijkstraServer(graphFile).start();
+		DijkstraServer dijkstraServer = new DijkstraServer(graphFile);
+		dijkstraServer.start();
 	}
 }
