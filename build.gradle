@@ -23,7 +23,7 @@ compileJava {
 }
 
 application {
-    mainClass = 'execution.Benchmark'
+    mainClass = 'server.DijkstraServer'
 }
 
 run {
