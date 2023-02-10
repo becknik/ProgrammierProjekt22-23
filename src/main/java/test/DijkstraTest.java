@@ -54,7 +54,8 @@ public class DijkstraTest {
 	@RepeatedTest(TEST_REPETITIONS)
 	public void oneToAllBenchmark () {
 		long oneToAllDijkstraStart = System.currentTimeMillis();
-		DijkstraAlgorithm.dijkstra(this.adjGraph, 12323);
+		DijkstraAlgorithm.dijkstra(this.adjGraph,8371825); // slow 8371833, 16743660 - fast 8371825, 16743651
+		//DijkstraAlgorithm.dijkstra(this.adjGraph,8371825, 16743659); // slow 8371834, 16743654 - fast 8371825, 16743659
 		long oneToAllDijkstraEnd = System.currentTimeMillis();
 
 		long oneToAllDijkstraElapsedTime = oneToAllDijkstraEnd - oneToAllDijkstraStart;

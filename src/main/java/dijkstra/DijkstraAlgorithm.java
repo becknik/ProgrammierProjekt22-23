@@ -4,29 +4,8 @@ import struct.AdjacencyGraph;
 
 import java.util.ArrayDeque;
 import java.util.Arrays;
-import java.util.Comparator;
-import java.util.PriorityQueue;
 
 public class DijkstraAlgorithm {
-
-	// I now understand why they call java dynamically & bad playing with arrays.
-	// Using int Arrays instead of this increases runtime from 8 -> 21 sec. Factor 2.5! (how is this even possible?)
-
-	/**
-	 * Holds the incremental, greedily set distance value to a specified node ID in the {@code dijkstra} operation &
-	 * sets it in relation to the nodes ID. Used for picking the best node available from a priorityQ using a local comparator instance
-	 *
-	 * @param nodeId              Node ID
-	 * @param incrementalDistance The steadily lowering distance value, which is updated by dereffering to the outdated record instance
-	 */
-	private record DijkstraNode(int nodeId, int incrementalDistance) {
-		@Override
-		public boolean equals (Object obj) {
-			assert obj.getClass() == Integer.class;
-
-			return ((int) obj) == this.nodeId;      // This one came straight out of hell.
-		}
-	}
 
 	/**
 	 * The method unites the calculation of the one to all and one to one dijkstra by making use of a vararg to allow multiple parameters.
@@ -37,8 +16,6 @@ public class DijkstraAlgorithm {
 	 *
 	 * @param nodeIds First node is the source node, second one is target. Second one can be neglected for on to all dijkstra execution
 	 * @return {@code DijkstraResult} wrapper object, which holds information about the {@code AdjacencyGraph}, if 2All or 2One was executed, the predecessors array & the starting node/ path
-	 *
-	 * @throws IllegalArgumentException {@code this.dijkstraDefensiveProgrammingChecks}
 	 */
 	public static DijkstraResult dijkstra (final AdjacencyGraph adjacencyGraph, final int... nodeIds) {
 		DijkstraAlgorithm.dijkstraDefensiveProgrammingChecks(adjacencyGraph, nodeIds);
@@ -54,56 +31,61 @@ public class DijkstraAlgorithm {
 		This is where the fun begins!
 		 */
 
-		// This one is by far a beauty, but 1-2 sec slower :(
-		// private final Comparator<DijkstraNode> dijkstraNodeComparator = Comparator.comparingInt(DijkstraNode::incrementalDistance);
-		final Comparator<DijkstraNode> dijkstraNodeComparator = (nodeOne, nodeTwo) -> {
-			if (nodeOne.incrementalDistance - nodeTwo.incrementalDistance > 0) {    // This is faster than Integer.compare()!
-				return 1;
-			} else if (nodeOne.incrementalDistance - nodeTwo.incrementalDistance < 0) {
-				return -1;
-			} else {
-				return 0;
-			}
-		};
+		// Using the datatype long to store (int nodeID, int relativeDistance) by unsigned bit shifts & a scalar optimized collection
+		DijkstraLongPriorityQueue priorityQLong = new DijkstraLongPriorityQueue(73, (k1, k2) -> {
+			// The favourite number of Sheldon Cooper for the win of our programming project! (Testing says better than 42, 69, 127 & 420!)
+			// Saving (nodeID, incrementalDistance) in a long primitive -> because of this (int) k1 == relativeDistance(k1)
+				if ((int) k1 > (int) k2) {
+					return 1;
+				} else if ((int) k1 < (int) k2) {
+					return -1;
+				} else {
+					return 0;
+				}
+			});
 
-		// TODO: Implement a priority queue which works with primitive ints (?)
-		PriorityQueue<DijkstraNode> priorityQ = new PriorityQueue<>(73, dijkstraNodeComparator);
-		// The favourite number of Sheldon Cooper for the win of our programming project! (Testing says better than 42, 69, 127 & 420!)
-
-		// Must be initialized here to allow multiple runs of this method
 		// Initializes all nodes as WHITE with distance -1, start node gets the distance 0
+		// Must be initialized here to allow multiple runs of this method
 		final int[] dijkstraDistancesToSource = new int[adjacencyGraph.getNodeCount()];
 		Arrays.fill(dijkstraDistancesToSource, -1);
 		dijkstraDistancesToSource[sourceNodeId] = 0;
 
-		// Setup for first loop iteration
-		priorityQ.add(new DijkstraNode(sourceNodeId, 0));
+		//final boolean[] closed = new boolean[adjacencyGraph.getNodeCount()];
+		// Seems to slow down onToAll/ have a low slowdown on oneToOne (?)
+
+		// Setup priorityQ for first loop iteration
+		final long shiftedSourceNode = ((long) sourceNodeId)<<32;
+		priorityQLong.enqueue(shiftedSourceNode);
 
 		// Declaring variable for the current watched nodes and its adjacent nodes, obviously for performance reasons :|
-		DijkstraNode currentDijkstraNode;
+		long currentDijkstraNodeOnSpeed;
 		int[] currentsAdjacentNodes;
 		int[] currentsAdjacentEdges;
 
-		while (!priorityQ.isEmpty()) {
-			currentDijkstraNode = priorityQ.poll();
+		while (!priorityQLong.isEmpty()) {
+			currentDijkstraNodeOnSpeed = priorityQLong.dequeueLong();
+			int currentDijkstraNode = (int) (currentDijkstraNodeOnSpeed>>>32);
 
-			if (oneToOneDijkstra && currentDijkstraNode.nodeId == targetNodeId) {
+
+			if (oneToOneDijkstra && currentDijkstraNode == targetNodeId) {
 				ArrayDeque<Integer> path = adjacencyGraph.getPath(sourceNodeId, targetNodeId, predecessorEdges);
 				return new OneToOneResult(adjacencyGraph, path);
 			}
 
 			// Adjacent neighbour nodes & edges are saved as arrays of node and edge Ids
-			currentsAdjacentNodes = adjacencyGraph.getAdjacentNodeIdsFrom(currentDijkstraNode.nodeId);
-			currentsAdjacentEdges = adjacencyGraph.getAdjacentEdgesIdsFrom(currentDijkstraNode.nodeId);
-			assert currentsAdjacentEdges.length == currentsAdjacentNodes.length;
-			// assert DijkstraAlgorithm.areAdjacentEdgeIdCorrect(adjacencyGraph.sources, currentDijkstraNode.nodeId, currentsAdjacentEdges);
+			currentsAdjacentNodes = adjacencyGraph.getAdjacentNodeIdsFrom(currentDijkstraNode);
+			currentsAdjacentEdges = adjacencyGraph.getAdjacentEdgesIdsFrom(currentDijkstraNode);
 
 			// Adding adjacent nodes of current (called N for Neighbour) greedily to priorityQ
 			for (int n = 0; n < currentsAdjacentNodes.length; n++) {
 				int nodeN = currentsAdjacentNodes[n];
 
 				final int oldDistanceToNodeN = dijkstraDistancesToSource[nodeN];
-				final int updatedDistanceToNodeN = currentDijkstraNode.incrementalDistance + adjacencyGraph.getDistanceOf(currentsAdjacentEdges[n]);
+				final int updatedDistanceToNodeN = (int) currentDijkstraNodeOnSpeed + adjacencyGraph.getDistanceOf(currentsAdjacentEdges[n]);
+
+				long updatedNodeN =  ((long) nodeN<<32); // nodeID0...(32)...0
+				// (((long) updatedDistanceToNodeN) & 0xFFFFFFFF);      // 0...(32)...0updateDistanceToNodeN
+				updatedNodeN |= updatedDistanceToNodeN; // nodeIDupdateDistanceToNodeN
 
 				// If the current path to node N(eighbour) has a better distance than the previous one || node N is an open node =>
 				// (update||set its distance (&predecessor) in priorityQ & array)
@@ -113,9 +95,12 @@ public class DijkstraAlgorithm {
 					predecessorEdges[nodeN] = currentsAdjacentEdges[n];     // Sets last node to current node, when distance is better
 
 					// This works due to overwritten equals method in the record which explodes if the parameter is something else than int
-					if (oldDistanceToNodeN != -1) priorityQ.remove(nodeN);
-
-					priorityQ.add(new DijkstraNode(nodeN, updatedDistanceToNodeN));
+					if (oldDistanceToNodeN != -1) {
+						priorityQLong.removeAndAddWithUpdatedDistance(updatedNodeN);
+						priorityQLong.changed();
+					} else {
+						priorityQLong.enqueue(updatedNodeN);
+					}
 				}
 			}
 		}
