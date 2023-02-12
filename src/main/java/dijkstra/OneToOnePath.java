@@ -1,31 +1,17 @@
 package dijkstra;
 
+import struct.AdjacencyGraph;
+
 import java.awt.geom.Point2D;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.function.Predicate;
-
-import struct.AdjacencyGraph;
+import java.util.Deque;
 
 /**
  * Holds a path object from source to target node, which holds edge ids.
  */
 public final class OneToOneResult extends DijkstraResult {
-
-	private final Predicate<ArrayDeque<Integer>> isPathValid = (path) -> {
-		HashSet<Integer> seenEdgeIds = new HashSet<>();     // Used for checking for cycles in the path
-
-		for (int edgeId : path) {
-			if (edgeId < 0 || adjacencyGraph.getEdgeCount() <= edgeId) return false;
-
-			if (seenEdgeIds.contains(edgeId)) return false;
-			seenEdgeIds.add(edgeId);
-		}
-		return true;
-	};
-
-	ArrayDeque<Integer> path;
+	Deque<Integer> path;
 
 	/**
 	 * OneToOne Constructor
@@ -33,11 +19,8 @@ public final class OneToOneResult extends DijkstraResult {
 	 * @param adjacencyGraph
 	 * @param path
 	 */
-	OneToOneResult (final AdjacencyGraph adjacencyGraph, final ArrayDeque<Integer> path) {
+	OneToOneResult (final AdjacencyGraph adjacencyGraph, final Deque<Integer> path) {
 		super(adjacencyGraph);
-
-		assert path != null;
-		assert this.isPathValid.test(path);     // Some precondition checks on path: all edge IDs valid && no cycles
 
 		this.path = path;
 	}
@@ -47,7 +30,7 @@ public final class OneToOneResult extends DijkstraResult {
 	}
 
 	@Override
-	public int getDistanceFromPath (final ArrayDeque<Integer> path) throws IllegalArgumentException {
+	public int getDistanceFromPath (final Deque<Integer> path) throws IllegalArgumentException {
 		throw new IllegalArgumentException("This object is an oneToToneResult, which already hold a path.");
 	}
 

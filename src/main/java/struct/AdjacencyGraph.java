@@ -32,8 +32,8 @@ public class AdjacencyGraph implements Graph {
 	/**
 	 * Object creation by initializing the arrays. TODO: Merge GraphReader in here??
 	 *
-	 * @param nodeCount
-	 * @param edgeCount
+	 * @param nodeCount The size the node specific arrays will be initialized with
+	 * @param edgeCount The size the edge specific arrays will be initialized with
 	 */
 	public AdjacencyGraph (int nodeCount, int edgeCount) {
 		assert nodeCount > 0 && edgeCount > 0;
@@ -205,10 +205,6 @@ public class AdjacencyGraph implements Graph {
 
 	public int getNodeCount () {
 		return this.longitudes.length;
-	}
-
-	public int getEdgeCount () {
-		return this.distances.length;
 	}
 
 	double getLongitudeOf (final int nodeId) {
