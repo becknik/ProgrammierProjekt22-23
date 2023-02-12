@@ -2,8 +2,8 @@ package dijkstra;
 
 import struct.AdjacencyGraph;
 
-import java.util.ArrayDeque;
 import java.util.Arrays;
+import java.util.Deque;
 
 public class DijkstraAlgorithm {
 
@@ -29,33 +29,22 @@ public class DijkstraAlgorithm {
 
 		/*
 		This is where the fun begins!
-		 */
+		*/
 
 		// Using the datatype long to store (int nodeID, int relativeDistance) by unsigned bit shifts & a scalar optimized collection
-		DijkstraLongPriorityQueue priorityQLong = new DijkstraLongPriorityQueue(73, (k1, k2) -> {
-			// The favourite number of Sheldon Cooper for the win of our programming project! (Testing says better than 42, 69, 127 & 420!)
-			// Saving (nodeID, incrementalDistance) in a long primitive -> because of this (int) k1 == relativeDistance(k1)
-				if ((int) k1 > (int) k2) {
-					return 1;
-				} else if ((int) k1 < (int) k2) {
-					return -1;
-				} else {
-					return 0;
-				}
-			});
+		DijkstraLongPriorityQueue priorityQLong = new DijkstraLongPriorityQueue(73, DijkstraAlgorithm::compareNodeIdRelativeDistance);
+		// The favourite number of Sheldon Cooper for the win of our programming project! (Testing says better than 42, 69, 127 & 420!)
 
 		// Initializes all nodes as WHITE with distance -1, start node gets the distance 0
 		// Must be initialized here to allow multiple runs of this method
-		final int[] dijkstraDistancesToSource = new int[adjacencyGraph.getNodeCount()];
-		Arrays.fill(dijkstraDistancesToSource, -1);
-		dijkstraDistancesToSource[sourceNodeId] = 0;
-
-		//final boolean[] closed = new boolean[adjacencyGraph.getNodeCount()];
-		// Seems to slow down onToAll/ have a low slowdown on oneToOne (?)
+		final int[] closed_distancesToSource = new int[adjacencyGraph.getNodeCount()];
+		Arrays.fill(closed_distancesToSource, 0x7F_FF_FF_FF); // 31 bit Two-complement -1 with boolean prefix bit 1 for already visited marker
+		closed_distancesToSource[sourceNodeId] = 0x80_00_00_00; // Node already visited = true & distance to source node is 0
+		//boolean[] closed = ... Seems to slow down onToAll/ have a low slowdown on oneToOne (?)
 
 		// Setup priorityQ for first loop iteration
-		final long shiftedSourceNode = ((long) sourceNodeId)<<32;
-		priorityQLong.enqueue(shiftedSourceNode);
+		final long shiftedSourceNodeID = ((long) sourceNodeId)<<32;
+		priorityQLong.enqueue(shiftedSourceNodeID);
 
 		// Declaring variable for the current watched nodes and its adjacent nodes, obviously for performance reasons :|
 		long currentDijkstraNodeOnSpeed;
@@ -66,10 +55,9 @@ public class DijkstraAlgorithm {
 			currentDijkstraNodeOnSpeed = priorityQLong.dequeueLong();
 			int currentDijkstraNode = (int) (currentDijkstraNodeOnSpeed>>>32);
 
-
 			if (oneToOneDijkstra && currentDijkstraNode == targetNodeId) {
-				ArrayDeque<Integer> path = adjacencyGraph.getPath(sourceNodeId, targetNodeId, predecessorEdges);
-				return new OneToOneResult(adjacencyGraph, path);
+				Deque<Integer> path = adjacencyGraph.getPath(sourceNodeId, targetNodeId, predecessorEdges);
+				return new OneToOnePath(adjacencyGraph, path);
 			}
 
 			// Adjacent neighbour nodes & edges are saved as arrays of node and edge Ids
@@ -80,7 +68,10 @@ public class DijkstraAlgorithm {
 			for (int n = 0; n < currentsAdjacentNodes.length; n++) {
 				int nodeN = currentsAdjacentNodes[n];
 
-				final int oldDistanceToNodeN = dijkstraDistancesToSource[nodeN];
+				final int closed_oldDistanceToNodeN = closed_distancesToSource[nodeN];
+
+				if ((closed_oldDistanceToNodeN >>> 31) == 1) continue; // node N is already closed, the shortest path to n exists
+
 				final int updatedDistanceToNodeN = (int) currentDijkstraNodeOnSpeed + adjacencyGraph.getDistanceOf(currentsAdjacentEdges[n]);
 
 				long updatedNodeN =  ((long) nodeN<<32); // nodeID0...(32)...0
@@ -89,14 +80,14 @@ public class DijkstraAlgorithm {
 
 				// If the current path to node N(eighbour) has a better distance than the previous one || node N is an open node =>
 				// (update||set its distance (&predecessor) in priorityQ & array)
-				if (oldDistanceToNodeN == -1 || updatedDistanceToNodeN < oldDistanceToNodeN) {
-					dijkstraDistancesToSource[nodeN] = updatedDistanceToNodeN;
+				if (closed_oldDistanceToNodeN == 0x7F_FF_FF_FF /* == -1 */ || updatedDistanceToNodeN < closed_oldDistanceToNodeN) {
+					closed_distancesToSource[nodeN] = updatedDistanceToNodeN;
 
 					predecessorEdges[nodeN] = currentsAdjacentEdges[n];     // Sets last node to current node, when distance is better
 
 					// This works due to overwritten equals method in the record which explodes if the parameter is something else than int
-					if (oldDistanceToNodeN != -1) {
-						priorityQLong.removeAndAddWithUpdatedDistance(updatedNodeN);
+					if (closed_oldDistanceToNodeN != 0x7F_FF_FF_FF) {
+						priorityQLong.removeAndEnqueueUpdatedDistance(updatedNodeN);
 						priorityQLong.changed();
 					} else {
 						priorityQLong.enqueue(updatedNodeN);
@@ -105,6 +96,24 @@ public class DijkstraAlgorithm {
 			}
 		}
 		return new OneToAllResult(adjacencyGraph, predecessorEdges, sourceNodeId);
+	}
+
+	/**
+	 * Comparing two (nodeID, incrementalDistance) tuple saved in a long primitive for optimization reasons using the
+	 * relative distance int. Because of the saving as a long primitive (int) k1 == relativeDistance(k1) ist fulfilled.
+	 *
+	 * @param k1 The tupels icrementalDistance (int) to be compared to
+	 * @param k2 The tuples icrementalDistance (int) to be comapred with
+	 * @return 1/-1/0, relative to first tuples icrementalDistance value
+	 */
+	private static int compareNodeIdRelativeDistance(long k1, long k2) {
+		if ((int) k1 > (int) k2) {
+			return 1;
+		} else if ((int) k1 < (int) k2) {
+			return -1;
+		} else {
+			return 0;
+		}
 	}
 
 	/**

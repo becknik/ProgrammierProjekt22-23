@@ -1,21 +1,28 @@
 package execution;
 
 import dijkstra.DijkstraAlgorithm;
-import dijkstra.OneToAllResult;
-import dijkstra.OneToOneResult;
+import dijkstra.DijkstraResult;
 import loader.GraphReader;
 import struct.AdjacencyGraph;
 import struct.SortedAdjacencyGraph;
 
+import javax.naming.OperationNotSupportedException;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
-import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Scanner;
 
 public class Benchmark {
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws OperationNotSupportedException
+	{
+		int argCounter = 0;
+		for (var arg : args) {
+			System.out.println(argCounter++ + ": " + arg);
+		}
+		System.out.println();
+
 		// read parameters (parameters are expected in exactly this order)
 		String graphPath = args[1];
 		double lon = Double.parseDouble(args[3]);
@@ -57,9 +64,9 @@ public class Benchmark {
 				// TODO set oneToOneDistance to the distance from
 				// oneToOneSourceNodeId to oneToOneSourceNodeId as computed by
 				// the one-to-one Dijkstra
-				OneToOneResult dijkstraResultToOne = (OneToOneResult)
+				DijkstraResult dijkstraResultToOne =
 						DijkstraAlgorithm.dijkstra(adjacencyGraph, oneToOneSourceNodeId, oneToOneTargetNodeId);
-				oneToOneDistance = dijkstraResultToOne.getDistanceFromPath();
+				oneToOneDistance = dijkstraResultToOne.getLength();
 				System.out.println(oneToOneDistance);
 			}
 		} catch (Exception e) {
@@ -72,7 +79,7 @@ public class Benchmark {
 		System.out.println("Computing one-to-all Dijkstra from node id " + sourceNodeId);
 		long oneToAllStart = System.currentTimeMillis();
 		// TODO: run one-to-all Dijkstra here
-		OneToAllResult dijkstraResultToAll = (OneToAllResult) DijkstraAlgorithm.dijkstra(adjacencyGraph, sourceNodeId);
+		DijkstraResult dijkstraResultToAll = DijkstraAlgorithm.dijkstra(adjacencyGraph, sourceNodeId);
 		long oneToAllEnd = System.currentTimeMillis();
 		System.out.println("\tone-to-all Dijkstra took " + (oneToAllEnd - oneToAllStart) + "ms");
 
@@ -82,9 +89,8 @@ public class Benchmark {
 		int oneToAllDistance = -42;
 		// TODO set oneToAllDistance to the distance from sourceNodeId to
 		// targetNodeId as computed by the one-to-all Dijkstra
-		ArrayDeque<Integer> pathToInput = new ArrayDeque<>();
-		pathToInput = dijkstraResultToAll.getPathTo(targetNodeId);
-		oneToAllDistance = dijkstraResultToAll.getDistanceFromPath(pathToInput);
+		Deque<Integer> pathToInput = dijkstraResultToAll.getPathTo(targetNodeId);
+		oneToAllDistance = dijkstraResultToAll.getLengthOf(pathToInput);
 		System.out.println("Distance from " + sourceNodeId + " to " + targetNodeId + " is " + oneToAllDistance);
 	}
 

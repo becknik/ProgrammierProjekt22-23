@@ -3,7 +3,8 @@ package server;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import dijkstra.DijkstraAlgorithm;
-import dijkstra.OneToOneResult;
+import dijkstra.DijkstraResult;
+import dijkstra.OneToOnePath;
 import loader.GraphReader;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -45,30 +46,30 @@ public class DijkstraServer {
 		this.httpServer = httpServerButMaybeNot; // Sometimes I hate Java...
 
 		this.websiteRootDirectory = new File(System.getProperty("user.dir") + "/website");
-		httpServer.createContext("/", this.metaHandler);
+		/*
+		 * Distributes the exchange Http-method wise to sub-handlers.
+		 * Because me being sick of making a subdomain for every single request made by the website, I decided to go for a
+		 * "subdomain per Http method" approach. This just makes more sense & is more appealing to me, personally...
+		 */
+		HttpHandler metaHandler = exchange -> {
+
+			switch (exchange.getRequestMethod()) {
+				case "GET" -> this.retrieveHandler.handle(exchange);
+				case "PUT" -> this.updateHandler.handle(exchange);
+				default -> {
+					System.err.println("ERROR:\tClient used http protocol method \"" + exchange.getRequestMethod() +
+							"\" which semantic was not meant to be implemented into this server...");
+					exchange.sendResponseHeaders(HttpURLConnection.HTTP_NOT_IMPLEMENTED, -1);
+				}
+			}
+		};
+		assert httpServer != null;
+		httpServer.createContext("/", metaHandler);
 
 		this.graphResourcesReady = false;
 
 		System.out.println("INFO:\tFinished constructing server");
 	}
-
-	/**
-	 * Distributes the exchange Http-method wise to sub-handlers.
-	 * Because me being sick of making a subdomain for every single request made by the website, I decided to go for a
-	 * "subdomain per Http method" approach. This just makes more sense & is more appealing to me, personally...
-	 */
-	private final HttpHandler metaHandler = exchange -> {
-
-		switch (exchange.getRequestMethod()) {
-			case "GET" -> this.retrieveHandler.handle(exchange);
-			case "PUT" -> this.updateHandler.handle(exchange);
-			default -> {
-				System.err.println("ERROR:\tClient used http protocol method \"" + exchange.getRequestMethod() +
-						"\" which semantic was not meant to be implemented into this server...");
-				exchange.sendResponseHeaders(HttpURLConnection.HTTP_NOT_IMPLEMENTED, -1);
-			}
-		}
-	};
 
 	private final HttpHandler retrieveHandler = exchange -> {
 		assert "GET".equals(exchange.getRequestMethod());
@@ -99,7 +100,7 @@ public class DijkstraServer {
 	};
 
 	/**
-	 * Handles all website related Http GET file request. Maps the requests to the server root's "website" subfolder.
+	 * Handles all website related Http GET file request. Maps the requests to the server root's "website" subdirectory.
 	 * If the root itself is requested on connection to the server, the website.html is returned. Handles errors.
 	 * Makes use of {@code websiteRootDirectory}.
 	 */
@@ -172,10 +173,10 @@ public class DijkstraServer {
 		JSONObject targetCoords = requestJSON.getJSONObject("target");
 		int targetNodeId = this.getNearestNodeIdFrom(targetCoords);
 
-		OneToOneResult result = (OneToOneResult) DijkstraAlgorithm.dijkstra(this.adjacencyGraph, startNodeId, targetNodeId);
+		DijkstraResult result = DijkstraAlgorithm.dijkstra(this.adjacencyGraph, startNodeId, targetNodeId);
 
 		// Convert the path consisting of edge ids to a path containing coordinates
-		ArrayList<Point2D.Double> pathInCoordinates = result.getPathInCoordinates();
+		ArrayList<Point2D.Double> pathInCoordinates = ((OneToOnePath) result).getPathInCoordinates();
 		System.out.println("INFO:\tPath is " + pathInCoordinates.size() + " edges long");
 
 		JSONObject geoJSON = this.buildGeoJSONFrom(pathInCoordinates);
@@ -262,7 +263,7 @@ public class DijkstraServer {
 
 	/**
 	 * Starts a DijkstraServer using the .fmi graph file specified as first argument of this method.
-	 * The graph file string is converted to the {@code File} Type & passed to the servers constructor.
+	 * The graph file string is converted to the {@code File} Type & passed to the server's constructor.
 	 *
 	 * @param args First argument must be the graph file path
 	 */

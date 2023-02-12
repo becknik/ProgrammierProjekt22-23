@@ -3,39 +3,23 @@ package dijkstra;
 import struct.AdjacencyGraph;
 
 import java.awt.geom.Point2D;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 
 /**
  * Holds a path object from source to target node, which holds edge ids.
  */
-public final class OneToOneResult extends DijkstraResult {
+public final class OneToOnePath extends DijkstraResult {
 	Deque<Integer> path;
 
-	/**
-	 * OneToOne Constructor
-	 *
-	 * @param adjacencyGraph
-	 * @param path
-	 */
-	OneToOneResult (final AdjacencyGraph adjacencyGraph, final Deque<Integer> path) {
+	OneToOnePath(final AdjacencyGraph adjacencyGraph, final Deque<Integer> path) {
 		super(adjacencyGraph);
-
 		this.path = path;
 	}
 
-	public int getDistanceFromPath () {
-		return super.getDistanceFromPath(this.path);
-	}
-
 	@Override
-	public int getDistanceFromPath (final Deque<Integer> path) throws IllegalArgumentException {
-		throw new IllegalArgumentException("This object is an oneToToneResult, which already hold a path.");
-	}
-
-	public ArrayDeque<Integer> getPath () {
-		return new ArrayDeque<>(this.path);
+	public int getLength() {
+		return super.getLengthOf(this.path);
 	}
 
 	/**

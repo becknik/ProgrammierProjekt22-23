@@ -1,7 +1,6 @@
 package test;
 
 import dijkstra.DijkstraAlgorithm;
-import dijkstra.OneToOneResult;
 import loader.GraphReader;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,21 +40,20 @@ public class DijkstraTest {
 		// TODO How to do test parameterization with multiple parameters?
 
 		long oneToOneDijkstraStart = System.currentTimeMillis();
-		OneToOneResult dijkstraResult = (OneToOneResult) DijkstraAlgorithm.dijkstra(this.adjGraph, 0, targetNode);
+		DijkstraAlgorithm.dijkstra(this.adjGraph, 0, targetNode);
 		long oneToOneDijkstraEnd = System.currentTimeMillis();
 
 		long oneToOneDijkstraElapsedTime = oneToOneDijkstraEnd - oneToOneDijkstraStart;
 
 		Logging.logTestBenchmark(DijkstraTest.graphFileType, "oneToOne", oneToOneDijkstraElapsedTime);
-		System.out.println("The path from node 0 to " + targetNode + ":\n" + dijkstraResult.getPath());
 	}
 
 	@Tag("execution.Benchmark")
 	@RepeatedTest(TEST_REPETITIONS)
 	public void oneToAllBenchmark () {
 		long oneToAllDijkstraStart = System.currentTimeMillis();
-		DijkstraAlgorithm.dijkstra(this.adjGraph,8371825); // slow 8371833, 16743660 - fast 8371825, 16743651
-		//DijkstraAlgorithm.dijkstra(this.adjGraph,8371825, 16743659); // slow 8371834, 16743654 - fast 8371825, 16743659
+		DijkstraAlgorithm.dijkstra(this.adjGraph,8371833); // slow 8371833, 16743660 - fast 8371825, 16743651
+		//DijkstraAlgorithm.dijkstra(this.adjGraph,8371834); // slow 8371834, 16743654 - fast 8371825, 16743659
 		long oneToAllDijkstraEnd = System.currentTimeMillis();
 
 		long oneToAllDijkstraElapsedTime = oneToAllDijkstraEnd - oneToAllDijkstraStart;

@@ -20,7 +20,7 @@ public class DijkstraLongPriorityQueue extends LongHeapPriorityQueue {
 	 * swapped to the first position of the heap array.
 	 * @param lUpdatedDistance
 	 */
-	public void removeAndAddWithUpdatedDistance(long lUpdatedDistance)
+	public void removeAndEnqueueUpdatedDistance(long lUpdatedDistance)
 	{
 		for (int i = 0; i < this.heap.length; i++) {
 			if ((this.heap[i] >> 32) == (lUpdatedDistance >>> 32)) {

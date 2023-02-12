@@ -2,7 +2,7 @@ package dijkstra;
 
 import struct.AdjacencyGraph;
 
-import java.util.ArrayDeque;
+import java.util.Deque;
 
 /**
  * This class stores the predecessor node array which holds the edge ids to the shortest paths next node,
@@ -13,25 +13,17 @@ public final class OneToAllResult extends DijkstraResult {
 	private final int[] predecessorEdgeIds;
 	private final int sourceNodeId;
 
-
-	/**
-	 * OneToAll Constructor. Constructs a new result by initializing the class members & does some precondition checks
-	 *
-	 * @param adjacencyGraph
-	 * @param predecessorEdgeIds
-	 * @param sourceNodeId
-	 */
 	OneToAllResult (final AdjacencyGraph adjacencyGraph, final int[] predecessorEdgeIds, final int sourceNodeId) {
 		super(adjacencyGraph);
 
 		assert 0 <= sourceNodeId;
-		assert sourceNodeId <= this.adjacencyGraph.getNodeCount();
+		assert sourceNodeId <= adjacencyGraph.getNodeCount();
 
 		this.sourceNodeId = sourceNodeId;
 
 		assert predecessorEdgeIds != null;
 		assert predecessorEdgeIds.length == adjacencyGraph.getNodeCount();
-		assert predecessorEdgeIds[sourceNodeId] < this.adjacencyGraph.getNodeCount();
+		assert predecessorEdgeIds[sourceNodeId] < adjacencyGraph.getNodeCount();
 
 		this.predecessorEdgeIds = predecessorEdgeIds;
 	}
@@ -43,12 +35,11 @@ public final class OneToAllResult extends DijkstraResult {
 	 * @param targetNodeId The target node
 	 * @return A path of edge IDs from the source node to the target node
 	 */
-	public ArrayDeque<Integer> getPathTo (final int targetNodeId) {
-		if (this.sourceNodeId == targetNodeId)
-			throw new IllegalArgumentException("Target node must not have the same index as source node.");
-		if (this.adjacencyGraph.getNodeCount() <= targetNodeId)
-			throw new IllegalArgumentException("Target node ID must not be higher than node count of adjacency graph.");
+	@Override
+	public Deque<Integer> getPathTo (final int targetNodeId) {
+		assert  this.sourceNodeId == targetNodeId : "Target node must not have the same index as source node.";
+		assert super.adjacencyGraph.getNodeCount() > targetNodeId : "Target node ID must not be higher than node count of adjacency graph.";
 
-		return this.adjacencyGraph.getPath(this.sourceNodeId, targetNodeId, this.predecessorEdgeIds);   // Don't know how to do better...
+		return super.adjacencyGraph.getPath(this.sourceNodeId, targetNodeId, this.predecessorEdgeIds);   // Don't know how to do better...
 	}
 }

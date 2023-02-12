@@ -3,9 +3,12 @@ package test;
 import execution.Benchmark;
 import org.junit.jupiter.api.Test;
 
+import javax.naming.OperationNotSupportedException;
+
 public class BenchmarkTest {
 	@Test
-	public void parameterFormattingTest() {
+	public void parameterFormattingTest() throws OperationNotSupportedException
+	{
 		String[] params = new String[]{
 				null,
 				System.getProperty("user.dir") + System.getProperty("file.separator") + "stgtregbz.fmi", null,
