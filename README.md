@@ -6,14 +6,23 @@ This lecture/project is held by Prof. Stefan Funke & Felix Weitbrecht.
 
 ---
 
-We want to make sure that neither of us is a frontend dev or want's to become one.
-Therefore, as you can see, your website design is kind of functional.
-The use of JavaScript nearly drove us to insanity & I'd be glad if I can leave my fingers off this piece of garbage language from now on. :^)
+## Introduction
 
-![A preview of our websites](./preview-pictures/priview.png)
----
-![Unlimited POWER!!! mode preview](./preview-pictures/preview-star-wars-mode.png)
-![What happens when Dijkstrulating & Server not being set up:](./preview-pictures/preview-server-status-message.png)
+Our website features executing a point to point & point to all points dijkstra shortest path algorithm & laying the result onto the map using GEOJson.
+The one to all website mode covers all extrem cases we could think of.
+The website communicates with the backend server also included in this project with plain AJAX requests using the [org.json](https://stleary.github.io/JSON-java/index.html) backend library.
+
+We tried to find the fastest way of implementing the algorithm (in Java!) & we think we're close to the top.
+Our one to all implementation executes in about 4 seconds on a relatively new AMD Ryzen Laptop CUP.
+To get to these result, we tried to encapsulate multiple primitive datatypes into larger ones to avoid having to many allocated arrays.
+For primitiv type optimized datastructures we made use of the [fastutil](https://fastutil.di.unimi.it/docs/index.html) library with some custom extension.
+
+However, this "tuple-ing" sometimes sadly causes the opposite of making the algorithm faster due to the coldness of the CPU cache (as we think) & weird other stuff, so we wen through a really exhaustive testing & trying out phase...
+
+## Website Preview
+
+![A preview of our websites](./preview-pictures/preview.png)
+See: [gallery](GALLERY.md)
 
 ## Copyright statement
 
