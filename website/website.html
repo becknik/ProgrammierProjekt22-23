@@ -71,6 +71,8 @@
 
 
 <script>
+    document.addEventListener("DOMContentLoaded", getServerStatus);
+
     // Sets the starting view to Stuttgart
     const map = L.map('map').setView([48.783333, 9.183333], 11);
 
@@ -80,7 +82,10 @@
     const serverStatusFiled = document.getElementById("serverStatusMessage");
     const websiteStausField = document.getElementById("websiteStatusMessage");
 
-    document.addEventListener("DOMContentLoaded", getServerStatus);
+
+    const serverStatusRequestInterval = setInterval(function () {
+        getServerStatus()
+    }, 2500); // TODO Async server response would be better
 
     function getServerStatus() {
         const request = new XMLHttpRequest();
@@ -92,9 +97,9 @@
         request.onreadystatechange = function () {
             if ((request.status % 100) === 2) {
                 serverStatusFiled.setAttribute("style", "color:green");
+                clearInterval(serverStatusRequestInterval); // Disables unnecessary server requests when graph structure is set up
             } else {
                 serverStatusFiled.setAttribute("style", "color:red");
-                // TODO Periodical requests? Async server response?
             }
             serverStatusFiled.innerHTML = request.responseText;
         }
