@@ -103,6 +103,8 @@ public class DijkstraServer {
 		try (OutputStream responseBody = exchange.getResponseBody()) {
 			responseBody.write(statusMessage.getBytes());
 		}
+
+		System.out.println("INFO:\tA client requested server graph data structure status");
 	};
 
 	/**
