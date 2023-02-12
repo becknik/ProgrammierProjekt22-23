@@ -1,23 +1,28 @@
 package server;
 
+import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import dijkstra.DijkstraAlgorithm;
-import dijkstra.DijkstraResult;
+import dijkstra.OneToAllResult;
 import dijkstra.OneToOnePath;
 import loader.GraphReader;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import struct.AdjacencyGraph;
 import struct.SortedAdjacencyGraph;
 
+import javax.naming.OperationNotSupportedException;
 import java.awt.geom.Point2D;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.Objects;
+import java.util.Optional;
 
 public class DijkstraServer {
 	private final HttpServer httpServer;
@@ -25,6 +30,7 @@ public class DijkstraServer {
 	final File graphFile;
 	private AdjacencyGraph adjacencyGraph;
 	private SortedAdjacencyGraph sortedAdjacencyGraph;
+	private Optional<OneToAllResult> oneToAllResult;
 	private boolean graphResourcesReady;
 	private File websiteRootDirectory;
 
@@ -136,7 +142,7 @@ public class DijkstraServer {
 	 */
 	private final HttpHandler updateHandler = exchange -> {
 		if (!this.graphResourcesReady) {
-			System.out.println("WARNING:\tServer received request computation during setup process of graph files");
+			System.out.println("WARNING:The server received request computation during setup process of graph files");
 
 			String response = "ERROR: Could not process request due to server graph setup not being finished.";
 
@@ -166,6 +172,17 @@ public class DijkstraServer {
 		// Create wrapper object which parses the nested JSON string input (containing two 2-tuples) to a JSON objects
 		JSONObject requestJSON = new JSONObject(requestBodyMessage);
 
+		String dijkstraExecutionMode = requestJSON.getString("mode");
+
+		if ("OneToOne".equals(dijkstraExecutionMode)) {
+			this.handleOneToOne(exchange,requestJSON);
+		} else {
+			this.handleOneToAll(exchange, requestJSON);
+		}
+	};
+
+	private void handleOneToOne(final HttpExchange exchange, final JSONObject requestJSON) throws IOException
+	{
 		// Un-nesting JSON structure by creating object containing starting long,lat from the nested one
 		JSONObject startCoords = requestJSON.getJSONObject("start");
 		int startNodeId = this.getNearestNodeIdFrom(startCoords);
@@ -173,12 +190,71 @@ public class DijkstraServer {
 		JSONObject targetCoords = requestJSON.getJSONObject("target");
 		int targetNodeId = this.getNearestNodeIdFrom(targetCoords);
 
-		DijkstraResult result = DijkstraAlgorithm.dijkstra(this.adjacencyGraph, startNodeId, targetNodeId);
+		OneToOnePath result = (OneToOnePath) DijkstraAlgorithm.dijkstra(this.adjacencyGraph, startNodeId, targetNodeId);
 
 		// Convert the path consisting of edge ids to a path containing coordinates
-		ArrayList<Point2D.Double> pathInCoordinates = ((OneToOnePath) result).getPathInCoordinates();
-		System.out.println("INFO:\tPath is " + pathInCoordinates.size() + " edges long");
 
+		ArrayList<Point2D.Double> pathInCoordinates;
+		try {
+			pathInCoordinates = result.getPathInCoordinates();
+		} catch (OperationNotSupportedException e) {
+			throw new RuntimeException(e);
+		}
+
+		this.sendGEOJsonFormattedPath(exchange, pathInCoordinates);
+
+		System.out.println("INFO:\tOneToOne Path is " + pathInCoordinates.size() + " edges long");
+	}
+
+	private void handleOneToAll(final HttpExchange exchange, final JSONObject requestJSON) throws IOException
+	{
+		JSONObject coords;
+		OneToAllExecutionMode executionMode;
+
+		try {
+			coords = requestJSON.getJSONObject("target");
+			executionMode = OneToAllExecutionMode.TARGET;
+		}
+		catch (JSONException e) {
+			coords = requestJSON.getJSONObject("start");
+			executionMode = OneToAllExecutionMode.SOURCE;
+		}
+
+		int nodeId = this.getNearestNodeIdFrom(coords);
+
+		if (executionMode == OneToAllExecutionMode.SOURCE) {
+			OneToAllResult dijkstraOneToAllResult =
+					(OneToAllResult) DijkstraAlgorithm.dijkstra(this.adjacencyGraph, nodeId);
+			this.oneToAllResult = Optional.of(dijkstraOneToAllResult);
+
+			exchange.sendResponseHeaders(HttpURLConnection.HTTP_ACCEPTED, -1);
+
+			System.out.println("INFO:\t Finished calculating OneToAll result for source node " + nodeId);
+		} else {
+			assert this.oneToAllResult.isPresent();
+
+			OneToAllResult oneToAllResult = this.oneToAllResult.get();
+			Deque<Integer> pathToTargetNode = oneToAllResult.getPathTo(nodeId);
+			ArrayList<Point2D.Double> pathToTargetInCoordinates;
+			try {
+				 pathToTargetInCoordinates = oneToAllResult.getPathInCoordinates(pathToTargetNode);
+			} catch (OperationNotSupportedException e) {
+				throw new RuntimeException(e);
+			}
+
+			this.sendGEOJsonFormattedPath(exchange, pathToTargetInCoordinates);
+
+			System.out.println("INFO:\tOneToAll Path to target node " + nodeId + " is " + pathToTargetInCoordinates.size() + " edges long");
+		}
+	}
+
+	private enum OneToAllExecutionMode {
+		SOURCE,
+		TARGET
+	}
+
+	private void sendGEOJsonFormattedPath(final HttpExchange exchange, final ArrayList<Point2D.Double> pathInCoordinates) throws IOException
+	{
 		JSONObject geoJSON = this.buildGeoJSONFrom(pathInCoordinates);
 		byte[] geoJSONString = geoJSON.toString().getBytes(StandardCharsets.UTF_8);
 
@@ -186,7 +262,7 @@ public class DijkstraServer {
 		try (OutputStream responseBody = exchange.getResponseBody()) {
 			responseBody.write(geoJSONString);
 		}
-	};
+	}
 
 	/**
 	 * Returns the node id of the nearest node to the specified {@link JSONObject}, which must contain a coordinate

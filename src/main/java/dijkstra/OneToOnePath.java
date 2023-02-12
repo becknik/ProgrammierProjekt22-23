@@ -2,6 +2,7 @@ package dijkstra;
 
 import struct.AdjacencyGraph;
 
+import javax.naming.OperationNotSupportedException;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -22,22 +23,19 @@ public final class OneToOnePath extends DijkstraResult {
 		return super.getLengthOf(this.path);
 	}
 
+	@Override
+	public ArrayList<Point2D.Double> getPathInCoordinates(final Deque<Integer> path) throws OperationNotSupportedException
+	{
+		throw new OperationNotSupportedException("Calling this operation on a OneToOnePath is logically not consistent." +
+				"This object holds it's own path already. Use the overloaded operation instead.");
+	}
+
 	/**
 	 * This method returns the path of the one to one dijkstra result as coordinates
 	 * @return path of the dijkstra result in coordinates
 	 */
-	public ArrayList<Point2D.Double> getPathInCoordinates () {
-		ArrayList<Point2D.Double> result = new ArrayList<>(this.path.size() + 1);
-
-		int firstEdge = this.path.peek();
-		Point2D.Double sourceNodesCoords = this.adjacencyGraph.getEdgeIdsNode(firstEdge, false);
-		result.add(sourceNodesCoords);
-
-		// Add the remaining edgesIds target nodes to get a list of edge node coordinates
-		for (int edgeId : this.path) {
-			result.add(this.adjacencyGraph.getEdgeIdsNode(edgeId, true));
-		}
-
-		return result;
+	public ArrayList<Point2D.Double> getPathInCoordinates () throws OperationNotSupportedException
+	{
+		return super.getPathInCoordinates(this.path);
 	}
 }

@@ -3,6 +3,8 @@ package dijkstra;
 import struct.AdjacencyGraph;
 
 import javax.naming.OperationNotSupportedException;
+import java.awt.geom.Point2D;
+import java.util.ArrayList;
 import java.util.Deque;
 
 /**
@@ -56,5 +58,21 @@ public abstract class DijkstraResult {
 		}
 
 		return distance;
+	}
+
+	public ArrayList<Point2D.Double> getPathInCoordinates (final Deque<Integer> path) throws OperationNotSupportedException
+	{
+		ArrayList<Point2D.Double> result = new ArrayList<>(path.size() + 1);
+
+		int firstEdge = path.peek();
+		Point2D.Double sourceNodesCoords = this.adjacencyGraph.getEdgeIdsNode(firstEdge, false);
+		result.add(sourceNodesCoords);
+
+		// Add the remaining edgesIds target nodes to get a list of edge node coordinates
+		for (int edgeId : path) {
+			result.add(this.adjacencyGraph.getEdgeIdsNode(edgeId, true));
+		}
+
+		return result;
 	}
 }

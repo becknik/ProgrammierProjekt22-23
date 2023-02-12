@@ -30,7 +30,7 @@
 <div class="coordinatesSection">
     <label>Starting Point:</label><br>
     <div class="coordinateSet">
-        <input type="text" id="startingPoint">
+        <input type="text" class="coordinatesBox" id="startingPointTextBox">
         <input type="button" value="Set" onclick="setTextBox('startingPoint')"/>
     </div>
 </div>
@@ -38,7 +38,7 @@
 <div class="coordinatesSection">
     <label>Target Point:</label><br>
     <div class="coordinateSet">
-        <input type="text" id="targetPoint">
+        <input type="text" class="coordinatesBox" id="targetPointTextBox">
         <input type="button" value="Set" onclick="setTextBox('targetPoint')"/>
     </div>
 </div>
@@ -46,24 +46,29 @@
     <input type="button" value="Dijkstrulate" class="sendButton" onclick="sendCoordinates()">
 </div>
 
+<div class="statusMessage">
+    Website Status: <label id="websiteStatusMessage"></label><br>
+    Server Status: <label id="serverStatusMessage" ></label>
+    <input type="button" value="Refresh" onclick="getServerStatus()">
+</div>
+
 <hr style="margin-top: 1em; margin-bottom: 1em">
 
 <h3 class="title">Settings</h3>
+<label for="oneToAllMode">
+    <input type="checkbox" id="oneToAllMode" onclick="toggleOneToAllMode()">Enable Dijkstra OneToAll Mode
+    <input type="button" value="Reset Source Point" onclick="oneToAllResetSourcePoint()">
+</label><br>
 <label for="enableStarWars">
     <input type="checkbox" id="enableStarWars" onclick="switchTheme()">Enable Star Wars Theming
 </label><br>
-<label for="enableStarWars">
+<label for="showCoordinatesPopup">
     <input type="checkbox" id="showCoordinatesPopup" onclick="toggleCoordinatePopup()">Enable Coordinates Popup on Selection
-</label>
+</label><br>
 
 
 <hr style="margin-top: 2em; margin-bottom: 2em">
 
-<div class="statusMessage">
-    Server Status: <label id="serverStatusMessage" ></label>
-    <input type="button" value="Refresh" onclick="getServerStatus()"><br>
-    Website Status: <label id="websiteStatusMessage"></label>
-</div>
 
 <script>
     // Sets the starting view to Stuttgart
@@ -71,6 +76,9 @@
 
     // Calls function from map-setup.js to set up the basic map contents
     setupMapContents();
+
+    const serverStatusFiled = document.getElementById("serverStatusMessage");
+    const websiteStausField = document.getElementById("websiteStatusMessage");
 
     document.addEventListener("DOMContentLoaded", getServerStatus);
 
@@ -82,14 +90,13 @@
         request.send();
 
         request.onreadystatechange = function () {
-            const serverStatusField = document.getElementById("serverStatusMessage");
             if ((request.status % 100) === 2) {
-                serverStatusField.setAttribute("style", "color:green");
+                serverStatusFiled.setAttribute("style", "color:green");
             } else {
-                serverStatusField.setAttribute("style", "color:red");
+                serverStatusFiled.setAttribute("style", "color:red");
                 // TODO Periodical requests? Async server response?
             }
-            serverStatusField.innerHTML = request.responseText;
+            serverStatusFiled.innerHTML = request.responseText;
         }
     }
 
@@ -121,8 +128,11 @@
     let startingMarker = new L.marker();
     let targetMarker = new L.marker();
 
-    let startingPoint = new Array(2);
-    let targetPoint = new Array(2);
+    let startingPoint = [2];
+    let targetPoint = [2];
+
+    const startingPointTextBox = document.getElementById("startingPointTextBox");
+    const targetPointTextBox = document.getElementById("targetPointTextBox");
 
     let startIcon = defaultStartIcon;
     let targetIcon = defaultTargetIcon;
@@ -154,77 +164,210 @@
 
     // For setting textbox value to the with ID of textBoxID for button functionality
     function setTextBox(textBoxID) {
-        const formattedCoords = String('(' + clicksLongitude + ", " + clicksLatitude + ')');
+        if (isOneToAllInconsistent(textBoxID)) {
+            websiteStausField.setAttribute("style","color:red")
+            websiteStausField.innerText = "The" + textBoxID + " is locked for the OneToAll Dijkstra." +
+                "Please use the other section section for selecting of target point instead or disable OneToAll mode."
+        } else {
+            websiteStausField.setAttribute("style","color:black")
+            websiteStausField.innerHTML = "";
 
-        const startingPointTextBox = document.getElementById(textBoxID);
+            const formattedCoords = String('(' + clicksLongitude + ", " + clicksLatitude + ')');
 
-        if (textBoxID === "startingPoint") {
-            startingPoint[0] = clicksLongitude;
-            startingPoint[1] = clicksLatitude;
+            let textBoxToBeModified;
 
-            startingMarker.remove();
-            startingMarker = L.marker(
-                [clicksLatitude, clicksLongitude], {icon: startIcon}
-            )
-                .addTo(map)
-                .bindPopup('<b>Start Point</b>');
+            if (textBoxID === "startingPoint") {
+                textBoxToBeModified = startingPointTextBox;
 
-        } else if (textBoxID === "targetPoint") {
-            targetPoint[0] = clicksLongitude;
-            targetPoint[1] = clicksLatitude;
+                startingPoint[0] = clicksLongitude;
+                startingPoint[1] = clicksLatitude;
 
-            targetMarker.remove();
-            targetMarker = L.marker([clicksLatitude, clicksLongitude], {icon: targetIcon})
-                .addTo(map)
-                .bindPopup('<b>Target Point</b>');
+                startingMarker.remove();
+                startingMarker = L.marker(
+                    [clicksLatitude, clicksLongitude], {icon: startIcon}
+                )
+                    .addTo(map)
+                    .bindPopup('<b>Start Point</b>');
+
+            } else if (textBoxID === "targetPoint") {
+                textBoxToBeModified = targetPointTextBox;
+
+                targetPoint[0] = clicksLongitude;
+                targetPoint[1] = clicksLatitude;
+
+                targetMarker.remove();
+                targetMarker = L.marker([clicksLatitude, clicksLongitude], {icon: targetIcon})
+                    .addTo(map)
+                    .bindPopup('<b>Target Point</b>');
+            }
+
+            textBoxToBeModified.setAttribute("size", formattedCoords.length * .825 + "pt");
+            textBoxToBeModified.setAttribute("value", formattedCoords);
+
+            setOneToAllBoxColoring();
+
+            if (oneToAllModeEnabled && oneToAllCalculated) {
+                sendCoordinates();
+            }
         }
+    }
 
-        startingPointTextBox.setAttribute("size", formattedCoords.length *.825 + "pt");
-        startingPointTextBox.setAttribute("value", formattedCoords);
+    function isOneToAllInconsistent (textBoxID) {
+        if (oneToAllModeEnabled) {
+            // Extreme Case: The oneToAll mode is set, but no coordinates were ever entered.
+            // Setting the current point as OneToAll source node.
+            if (oneToAllSourceNode == null) {
+                oneToAllSourceNode = textBoxID;
+            }
+            // Inconsistent Cases: The user tries to set the OneToAll source node to another point
+            else if (oneToAllSourceNode === "startingPoint" && textBoxID === "startingPoint") {
+                return true;
+            } else if (oneToAllSourceNode === "targetPoint" && textBoxID === "targetPoint") {
+                return true;
+            }
+        }
+        return false;
     }
 
     // -------------------------------------------------------------------------
 
     let geoJSONLayer = L.geoJSON().addTo(map);
-    const serverStatusFiled = document.getElementById("serverStatusMessage");
-    const websiteStausField = document.getElementById("websiteStatusMessage");
+
+    let oneToAllModeEnabled = false;
+    let oneToAllSourceNode;
+
+    function toggleOneToAllMode() {
+        oneToAllModeEnabled = !oneToAllModeEnabled;
+
+        // Extreme case: The user set some points on the map & then enables the OneToAll mode
+        // To ensure a point lock, the start point is locked. If it's not set, the target point is locked.
+        if (oneToAllSourceNode == null) {
+
+            // Checks if starting point or target point is already set. !== null, !== [2] etc. etc. doesn't work...
+            if (startingPoint[0] !== 2) { // WTF?!?!!?
+                oneToAllSourceNode = "startingPoint";
+            }
+            else if (targetPoint[0] !== 2) {
+                oneToAllSourceNode = "targetPoint";
+            }
+        }
+
+        // If the target node was the only available point on setting of oneToAllModeEnabled & it is therefore set as oneToAllSourceNode,
+        // but now the startingPoint is also set, the startingPoint should now be the startingPoint.
+        if (oneToAllSourceNode === "targetPoint" && startingPoint[0] !== 2) { // Don't ask why it must be !== 2...
+            oneToAllSourceNode = "startingPoint";
+        }
+
+        if (oneToAllModeEnabled) {
+            websiteStausField.innerText = "Successfully enabled OneToAll mode."
+        } else {
+            websiteStausField.innerText = "Successfully disabled OneToAll mode."
+        }
+
+        setOneToAllBoxColoring();
+    }
+
+    // This procedure sets & unsets the coloring of the text box where the OneToAll source node is located in
+    function setOneToAllBoxColoring() {
+        let resetColorBox;
+        if (oneToAllSourceNode === "startingPoint") {
+            resetColorBox = startingPointTextBox;
+        } else if (oneToAllSourceNode === "targetPoint") {
+            resetColorBox = targetPointTextBox;
+        }
+
+        if (resetColorBox != null) {
+            if (oneToAllModeEnabled) {
+                resetColorBox.setAttribute("style", "border:2px solid blue");
+            } else {
+                resetColorBox.setAttribute("style", "border:1px solid black");
+            }
+        }
+    }
+
+    function oneToAllResetSourcePoint() {
+        oneToAllCalculated = false;
+        oneToAllSourceNode = null;
+        startingPointTextBox.setAttribute("style", "border:1px solid black");
+        targetPointTextBox.setAttribute("style", "border:1px solid black");
+    }
+
+    // -------------------------------------------------------------------------
+
+    let oneToAllCalculated = false;
 
     function sendCoordinates() {
         // Resetting previous error messages
         websiteStausField.setAttribute("style", "color:black");
         websiteStausField.innerHTML = "";
 
-        if (startingPoint[0] != null && targetPoint[0] != null) {
-            let request = new XMLHttpRequest();
+        const sourceNodeValid = startingPoint[0] != null;
+        const targetNodeValid = targetPoint[0] != null;
+        if ((sourceNodeValid && targetNodeValid) || oneToAllModeEnabled && (sourceNodeValid || targetNodeValid)) {
+            let mode;
+            let coordinates;
 
+            //let JSONTemplate = JSON.parse(); TODO
+
+            if (oneToAllModeEnabled) {
+                mode = "mode: OneToAll,";
+                if (!oneToAllCalculated) {
+                    coordinates =
+                        '"start": {' +
+                        '"long": ' + ((oneToAllSourceNode === "startingPoint") ? startingPoint[0] : targetPoint[0]) + ',' +
+                        '"lat": ' + ((oneToAllSourceNode === "startingPoint") ? startingPoint[1] : targetPoint[1]) + ',' +
+                        '}';
+                } else if (oneToAllCalculated) {
+                    coordinates =
+                        '"target": {' +
+                        '"long": ' + ((oneToAllSourceNode === "targetPoint") ? startingPoint[0] : targetPoint[0]) + ',' +
+                        '"lat": ' + ((oneToAllSourceNode === "targetPoint") ? startingPoint[1] : targetPoint[1]) + ',' +
+                        '}';
+                }
+            } else if (!oneToAllModeEnabled) {
+                mode = "mode: OneToOne,"
+                coordinates =
+                    '"start": {' +
+                        '"long": ' + startingPoint[0] + ',' +
+                        '"lat": ' + startingPoint[1] + ',' +
+                    '},' +
+                    '"target": {' +
+                        '"long": ' + targetPoint[0] + ',' +
+                        '"lat": ' + targetPoint[1] + ',' +
+                    '}';
+            }
+
+            const AJAXRequestString = '{' +
+                mode +
+                coordinates +
+                '}';
+
+            let request = new XMLHttpRequest();
             request.open("PUT", "ShortestPath");
             request.setRequestHeader("Accept", "application/json");
             request.setRequestHeader("Accept", "utf-8");
 
-            const jsonString = '{' +
-                '"start": {' +
-                '"long": ' + startingPoint[0] + ',' +
-                '"lat": ' + startingPoint[1] + ',' +
-                '},' +
-                '"target": {' +
-                '"long": ' + targetPoint[0] + ',' +
-                '"lat": ' + targetPoint[1] + ',' +
-                '}\n}';
-            request.send(jsonString);
+            request.send(AJAXRequestString);
 
             request.onreadystatechange = function () {
                 if ((request.status % 100) === 2) {
-                    const shortestGeoJSONPath = JSON.parse(request.responseText);
+                    if (oneToAllModeEnabled && !oneToAllCalculated) {
+                        oneToAllCalculated = true;
+                        websiteStausField.innerText = "OneToAll calculation finished. Please select a target node the calculation should proceed to.";
+                    } else {
+                        const shortestGeoJSONPath = JSON.parse(request.responseText);
 
-                    var myStyle = {
-                        "color": "#852bd9",
-                        "weight": 3,
-                        "opacity": 1
-                    };
-                    geoJSONLayer.remove();
-                    geoJSONLayer = L.geoJSON(shortestGeoJSONPath, {
-                        style: myStyle
-                    }).addTo(map);
+                        const myStyle = {
+                            "color": "#852bd9",
+                            "weight": 3,
+                            "opacity": 1
+                        };
+                        geoJSONLayer.remove();
+                        geoJSONLayer = L.geoJSON(shortestGeoJSONPath, {
+                            style: myStyle
+                        }).addTo(map);
+                    }
+
                 } else {
                     console.log("ERROR:\tRequest returned status code " + request.status);
                     console.log(request.responseText);
@@ -232,7 +375,12 @@
                 }
             }
         } else {
-            const errorMessage = "ERROR:\tPlease set start & target point before Dijkstrulating!";
+            let errorMessage;
+            if (oneToAllModeEnabled) {
+                errorMessage = "Error:\tPlease set at least one point before starting OneToAll Dijkstra calculation!"
+            } else {
+                errorMessage = "ERROR:\tPlease set start and target point before starting OneToOne Dijkstra calculation!";
+            }
 
             websiteStausField.setAttribute("style", "color:red");
             websiteStausField.innerHTML = errorMessage;
